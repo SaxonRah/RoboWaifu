@@ -828,3 +828,65 @@ plt.show()
 4. **Scalability**:
    - High-dimensional representations and distributed updates scale efficiently to large, complex datasets or networks.
 
+---
+
+# References 
+
+To support the research and development of these ideas, here are references that align with each section of this research:
+
+### **1. Hyperdimensional Computing (HDC)**
+- **Kanerva, P.** (2009). *Hyperdimensional computing: An introduction to computing in distributed representations with high-dimensional random vectors.* Cognitive Computation, 1(2), 139–159.
+  - [Link to Paper](https://doi.org/10.1007/s12559-009-9009-8)
+
+- **Rachkovskij, D. A., & Kussul, E. M.** (2001). *Binding and normalization of binary sparse distributed representations by context-dependent thinning.* Neural Computation, 13(2), 411–452.
+  - [Link to Paper](https://redwood.berkeley.edu/wp-content/uploads/2021/08/RachkovskijKussul.pdf)
+
+### **2. Dynamic Graphs**
+- **Scarselli, F., Gori, M., Tsoi, A. C., Hagenbuchner, M., & Monfardini, G.** (2009). *The graph neural network model.* IEEE Transactions on Neural Networks, 20(1), 61–80.
+  - [Link to Paper](https://doi.org/10.1109/TNN.2008.2005605)
+
+- **Kipf, T. N., & Welling, M.** (2016). *Semi-supervised classification with graph convolutional networks.* arXiv preprint arXiv:1609.02907.
+  - [Link to Preprint](https://arxiv.org/abs/1609.02907)
+
+### **3. Energy-Based Models**
+- **Hinton, G. E., Sejnowski, T. J., & Ackley, D. H.** (1984). *Boltzmann machines: Constraint satisfaction networks that learn.* Cognitive Science, 9(1), 147–169.
+  - [Link to Paper](https://doi.org/10.1016/S0364-0213(85)80012-4)
+
+- **LeCun, Y., Chopra, S., Hadsell, R., Ranzato, M., & Huang, F. J.** (2006). *A tutorial on energy-based learning.* Predicting Structured Data, 1(2), 1–50.
+  - [Link to Paper](https://yann.lecun.com/exdb/publis/pdf/lecun-06.pdf)
+
+### **4. Nonlinear Dynamical Systems**
+- **Strogatz, S. H.** (2018). *Nonlinear dynamics and chaos: With applications to physics, biology, chemistry, and engineering.* CRC Press.
+  - [Link to Book]([https://doi.org/10.1201/9780429503940](https://www.biodyn.ro/course/literatura/Nonlinear_Dynamics_and_Chaos_2018_Steven_H._Strogatz.pdf))
+
+- **Kuramoto, Y.** (1975). *Self-entrainment of a population of coupled nonlinear oscillators.* In International Symposium on Mathematical Problems in Theoretical Physics (pp. 420–422). Springer, Berlin, Heidelberg.
+  - [Link to Symposium](https://doi.org/10.1007/BFb0013365)
+
+### **5. Topological AI**
+- **Edelsbrunner, H., & Harer, J.** (2010). *Computational topology: An introduction.* American Mathematical Society.
+  - [Link to Book](https://bookstore.ams.org/mbk-69)
+
+- **Ghrist, R.** (2008). *Barcodes: The persistent topology of data.* Bulletin of the American Mathematical Society, 45(1), 61–75.
+  - [Link to Paper](https://doi.org/10.1090/S0273-0979-07-01191-3)
+
+### **6. Sparse Distributed Representations (SDRs)**
+- **Hawkins, J., Ahmad, S., & Dubinsky, D.** (2011). *Cortical learning algorithm and sparse distributed representation.* Numenta.
+  - [Link to Paper]([https://www.numenta.com/resources/white-papers/](https://www.rctn.org/vs265/HTM_CorticalLearningAlgorithms.pdf))
+
+- **Ahmad, S., & Hawkins, J.** (2015). *Properties of sparse distributed representations and their application to hierarchical temporal memory.* arXiv preprint arXiv:1503.07469.
+  - [Link to Preprint](https://arxiv.org/abs/1503.07469)
+
+### **7. Temporal Encoding**
+- **Maass, W., Natschläger, T., & Markram, H.** (2002). *Real-time computing without stable states: A new framework for neural computation based on perturbations.* Neural Computation, 14(11), 2531–2560.
+  - [Link to Paper](https://doi.org/10.1162/089976602760407955)
+
+- **Izhikevich, E. M.** (2007). *Dynamical systems in neuroscience: The geometry of excitability and bursting.* MIT Press.
+  - [Link to Book](https://mitpress.mit.edu/9780262514200/)
+
+### **Hardware-Specific Implementations**
+- **Indiveri, G., & Liu, S. C.** (2015). *Memory and information processing in neuromorphic systems.* Proceedings of the IEEE, 103(8), 1379–1397.
+  - [Link to Paper](https://doi.org/10.1109/JPROC.2015.2444094)
+
+- **Mead, C.** (1990). *Neuromorphic electronic systems.* Proceedings of the IEEE, 78(10), 1629–1636.
+  - [Link to Paper](https://doi.org/10.1109/5.58356)
+
