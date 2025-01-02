@@ -202,5 +202,146 @@ def test_ucs():
     return results
 
 
+def test_encoding_similarity():
+    config = UCSConfig()
+    encoder = HDCEncoder(config.input_dimension, config.hd_dimension)
+
+    X = np.random.randn(100, config.input_dimension)
+    noise = np.random.normal(0, 0.01, X.shape)
+    X_prime = X + noise
+
+    # encoded_X = np.array([encoder.encode(x) for x in X])
+    # encoded_X_prime = np.array([encoder.encode(x) for x in X_prime])
+
+    # Flatten the encoded vectors
+    encoded_X = np.array([encoder.encode(x).flatten() for x in X])
+    encoded_X_prime = np.array([encoder.encode(x).flatten() for x in X_prime])
+
+    similarities = [
+        np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
+        for a, b in zip(encoded_X, encoded_X_prime)
+    ]
+    print(f"Average Cosine Similarity: {np.mean(similarities):.3f}")
+
+
+def test_temporal_processing():
+    config = UCSConfig(temporal_window=2.0, decay_rate=0.5)
+    temporal_processor = TemporalProcessor(config)
+
+    t = np.linspace(0, 10, 500)  # Time steps
+    x = np.sin(2 * np.pi * 0.5 * t)  # Sinusoidal input
+    results = []
+
+    for i, val in enumerate(x):
+        result = temporal_processor.process(t[i], np.array([val]))
+        results.append(result)
+
+    results = np.array(results)
+    print(f"Processed Temporal Dynamics Shape: {results.shape}")
+
+
+def test_graph_clustering():
+    from sklearn.datasets import make_blobs
+    from sklearn.decomposition import PCA
+    import matplotlib.pyplot as plt
+
+    config = UCSConfig()
+    ucs = UnifiedCognitiveSystem(config)
+
+    # Generate clustered data
+    X, y = make_blobs(n_samples=100, centers=3, n_features=config.input_dimension, random_state=42)
+
+    embeddings = []
+    for x in X:
+        result = ucs.process(x)
+        embeddings.append(result)
+
+    embeddings = np.array(embeddings)
+
+    # Dimensionality reduction for visualization
+    pca = PCA(n_components=2)
+    reduced_embeddings = pca.fit_transform(embeddings)
+
+    # Plot
+    plt.scatter(reduced_embeddings[:, 0], reduced_embeddings[:, 1], c=y, cmap='viridis')
+    plt.title("Graph Embeddings Clustering")
+    plt.show()
+
+
+# TODO: Compare with existing systems.
+"""
+Benchmarking Tasks:
+    Temporal Pattern Classification:
+        Compare UCS to LSTMs, GRUs, or Temporal Convolutional Networks (TCNs)
+            on datasets like UCR Time Series Archive.
+            
+    Graph Processing:
+        Test against Graph Neural Networks (GNNs) for node classification
+            or graph clustering tasks using datasets like Cora, Citeseer, or PubMed.
+            
+    Representation Learning:
+        Compare UCS's hyperdimensional encoding to standard embeddings like PCA
+            or t-SNE in dimensionality reduction tasks.
+"""
+# def compare_with_existing_system():
+#     from sklearn.metrics import accuracy_score
+#     from some_existing_library import ExistingTemporalModel
+#
+#     # Load benchmark dataset
+#     X_train, y_train, X_test, y_test = load_some_temporal_dataset()
+#
+#     # UCS system
+#     config = UCSConfig()
+#     ucs = UnifiedCognitiveSystem(config)
+#
+#     ucs_results = [ucs.process(x) for x in X_test]
+#
+#     # Existing system
+#     model = ExistingTemporalModel()
+#     model.fit(X_train, y_train)
+#     existing_results = model.predict(X_test)
+#
+#     # Evaluate
+#     ucs_accuracy = accuracy_score(y_test, np.argmax(ucs_results, axis=1))
+#     existing_accuracy = accuracy_score(y_test, existing_results)
+#
+#     print(f"UCS Accuracy: {ucs_accuracy:.3f}")
+#     print(f"Existing Model Accuracy: {existing_accuracy:.3f}")
+
+
+def test_profile_efficiency():
+    import time
+
+    config = UCSConfig()
+    ucs = UnifiedCognitiveSystem(config)
+
+    # Generate input data
+    X = np.random.randn(100, config.input_dimension)
+
+    # Profile UCS
+    start_time = time.time()
+    for x in X:
+        ucs.process(x)
+    ucs_time = time.time() - start_time
+
+    print(f"UCS Inference Time: {ucs_time:.3f} seconds")
+
+
 if __name__ == "__main__":
     test_ucs()
+    # Expected Result: UCS processes samples.
+
+    test_encoding_similarity()
+    # Expected Result: High cosine similarity, indicating robustness of the encoding.
+
+    test_temporal_processing()
+    # Expected Result: Smooth integration of temporal features, showing proper decay and updating over time.
+
+    test_graph_clustering()
+    # Expected Result: Data points from the same cluster are close together in the embedding space.
+
+    # compare_with_existing_system()
+    # Expected Result:
+
+    test_profile_efficiency()
+    # Expected Result: Faster inference and lower memory consumption compared to heavy neural architectures.
