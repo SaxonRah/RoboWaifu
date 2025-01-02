@@ -6,7 +6,7 @@ The `HDCEncoder` performs two main functions: encoding and operations (binding a
   x_{\text{norm}} = \frac{x}{\|x\|_2} \quad \text{(normalization to unit vector)}
   h = \text{tanh}\left(\frac{1}{\sqrt{d}}\mathbf{P}^T x_{\text{norm}}\right)
 ```
-- **Proof of distance preservation:** The random projection matrix $\mathbf{P}$ ensures that the dot product between two normalized vectors $x_{\text{norm}}$ and $y_{\text{norm}}$ in the high-dimensional space approximates their cosine similarity in the input space (Johnson-Lindenstrauss Lemma). The \(\tanh\) nonlinearity ensures bounded outputs while preserving relative distances.
+- **Proof of distance preservation:** The random projection matrix $\mathbf{P}$ ensures that the dot product between two normalized vectors $x_{\text{norm}}$ and $y_{\text{norm}}$ in the high-dimensional space approximates their cosine similarity in the input space (Johnson-Lindenstrauss Lemma). The $\tanh$ nonlinearity ensures bounded outputs while preserving relative distances.
 
 ---
 
@@ -24,7 +24,7 @@ The `HDCEncoder` performs two main functions: encoding and operations (binding a
 ```math
   b = \text{tanh}\left(\frac{1}{n}\sum_{i=1}^n v_i\right)
 ```
-- **Proof of superposition property:** Summing vectors averages their components while keeping them bounded via \(\tanh\). The result approximates the centroid in high-dimensional space, preserving information from the inputs while maintaining distance properties.
+- **Proof of superposition property:** Summing vectors averages their components while keeping them bounded via $\tanh$. The result approximates the centroid in high-dimensional space, preserving information from the inputs while maintaining distance properties.
 
 ---
 
@@ -85,10 +85,6 @@ The implementation is mathematically valid, leveraging well-established principl
 4. **Graph Embedding**: Spectral graph theory for structure preservation.
 
 The Unified Cognitive System (UCS) effectively integrates **Hyperdimensional Computing (HDC)**, **Graph Dynamics (GD)**, **Temporal Processing (TP)**, and **Graph Embedding (GE)** to create a cohesive framework for processing, learning, and reasoning with high-dimensional and temporal data.
-
-How these components interact and complement each other:
-
----
 
 ### **1. Hyperdimensional Computing (HDC)**
 #### Role:
