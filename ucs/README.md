@@ -1,3 +1,4 @@
+```
 ucs/
 ├── docs/                        # Documentation for the project
 │   ├── index.md                 # Overview of the project
@@ -85,3 +86,4 @@ ucs/
 ├── README.md                    # Project overview
 ├── setup.py                     # Installation script for the package
 └── requirements.txt             # Python dependencies
+```
