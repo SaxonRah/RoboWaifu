@@ -1,4 +1,4 @@
- # Graph creation and manipulation
+# Graph creation and manipulation
 
 # Dynamic Graph Construction and Management
 class DynamicGraph:

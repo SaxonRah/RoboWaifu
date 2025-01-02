@@ -1,8 +1,8 @@
 # Real-time motion planning
-from ucs.encoding.hdc_encoder import HypervectorEncoder
-from ucs.graph.graph_construction import DynamicGraph
-from ucs.optimization.energy_models import GradientDescentOptimizer
-from ucs.memory.working_memory import WorkingMemory
+from ucs.ucs.encoding.hdc_encoder import HypervectorEncoder
+from ucs.ucs.graph.graph_construction import DynamicGraph
+from ucs.ucs.optimization.energy_models import GradientDescentOptimizer
+from ucs.ucs.memory.working_memory import WorkingMemory
 
 # Step 1: Encode sensor data into hypervectors
 encoder = HypervectorEncoder(dim=10000)
