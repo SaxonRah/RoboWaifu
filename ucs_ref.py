@@ -201,5 +201,6 @@ def test_ucs():
     print(f"Output range: [{results.min():.3f}, {results.max():.3f}]")
     return results
 
+
 if __name__ == "__main__":
     test_ucs()
