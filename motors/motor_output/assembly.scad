@@ -5,9 +5,13 @@ $fn = 100;
 // Import individual components
 use <rotor.scad>
 use <stator.scad>
+use <housing.scad>
 
 // Assembly
 module assembly() {
+    // Housing
+    housing();
+    
     // Bottom rotor
     rotor();
 
