@@ -105,8 +105,16 @@ class WireCalculator:
         # Calculate coil dimensions
         turns_per_layer = math.floor((outer_d - inner_d) / (effective_wire_diameter * 2))
         num_layers = math.ceil(required_turns / turns_per_layer)
+
+        if num_layers * effective_wire_diameter * 2 < 5:
+            # Adjust number of turns to ensure minimum height
+            required_turns = math.ceil(5 / (effective_wire_diameter * 2)) * turns_per_layer
+            num_layers = math.ceil(required_turns / turns_per_layer)
+            print(f"Adjusted turns to meet minimum height: {required_turns}")
+
         # TODO: Find out why height is always selecting 5mm via max()
-        height = max(num_layers * effective_wire_diameter * 2, 5)  # Minimum 5mm height
+        # height = max(num_layers * effective_wire_diameter * 2, 5)  # Minimum 5mm height
+        height = num_layers * effective_wire_diameter * 2
 
         # Calculate total wire length and resistance
         avg_turn_length = math.pi * ((outer_d + inner_d) / 2)
@@ -486,7 +494,7 @@ def main():
         voltage=48,  # 48V
         speed=1000,  # 1000 RPM
         shaft_diameter=20,  # 20mm shaft
-        target_thickness=100  # 100mm total thickness
+        target_thickness=500  # 100mm total thickness
     )
 
     # Create designer and generate design
