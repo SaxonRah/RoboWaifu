@@ -16,11 +16,11 @@ module assembly() {
     rotor();
 
     // Stator (with air gap)
-    translate([0, 0, 9.069980123839466])
+    translate([0, 0, 13.88549476816575])
         stator();
 
     // Top rotor
-    translate([0, 0, 20.069980123839464])
+    translate([0, 0, 119.3803708342557])
         rotor();
 }
 

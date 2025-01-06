@@ -5,8 +5,12 @@ import os
 import itertools
 
 # Constants
-COIL_RADIUS_RATIO = 0.4
-MAGNET_RADIUS_RATIO = 0.7
+# COIL_RADIUS_RATIO = 0.4
+COIL_RADIUS_RATIO = 0.6  # Increased from 0.4 to allow more space
+
+# MAGNET_RADIUS_RATIO = 0.7
+MAGNET_RADIUS_RATIO = 0.8  # Increased from 0.7
+
 MAGNET_WIDTH_RATIO = 0.8
 
 
@@ -91,30 +95,27 @@ class WireCalculator:
             current: float,
             inner_d: float,
             outer_d: float,
+            target_height: float,  # Add target height parameter
             rpm_per_volt: int = 20) -> CoilSpecs:
         """Calculate coil specifications based on voltage and current requirements."""
         wire = WireCalculator.select_wire(current)
 
         # Calculate required number of turns based on voltage
-        # Adjusted voltage constant for more realistic turn count
         required_turns = max(int(voltage * rpm_per_volt / 1000), 10)  # Minimum 10 turns
 
         # Adjust wire space requirements for parallel strands
         effective_wire_diameter = wire.diameter * math.sqrt(wire.parallel_strands)
 
-        # Calculate coil dimensions
+        # Calculate turns based on target height
         turns_per_layer = math.floor((outer_d - inner_d) / (effective_wire_diameter * 2))
-        num_layers = math.ceil(required_turns / turns_per_layer)
+        target_layers = math.floor(target_height / (effective_wire_diameter * 2))
 
-        if num_layers * effective_wire_diameter * 2 < 5:
-            # Adjust number of turns to ensure minimum height
-            required_turns = math.ceil(5 / (effective_wire_diameter * 2)) * turns_per_layer
-            num_layers = math.ceil(required_turns / turns_per_layer)
-            print(f"Adjusted turns to meet minimum height: {required_turns}")
+        # Adjust number of turns to meet both voltage and height requirements
+        required_turns = max(required_turns, turns_per_layer * target_layers)
+        actual_layers = math.ceil(required_turns / turns_per_layer)
 
-        # TODO: Find out why height is always selecting 5mm via max()
-        # height = max(num_layers * effective_wire_diameter * 2, 5)  # Minimum 5mm height
-        height = num_layers * effective_wire_diameter * 2
+        # Calculate actual height based on layers
+        height = actual_layers * effective_wire_diameter * 2
 
         # Calculate total wire length and resistance
         avg_turn_length = math.pi * ((outer_d + inner_d) / 2)
@@ -138,28 +139,46 @@ class CoilLayoutCalculator:
         Tuple[float, float]]:
         """Calculate non-overlapping coil positions."""
         positions = []
+        motor_radius = motor_diameter / 2
 
-        # Calculate placement radius to ensure coils fit
-        min_radius = (coil_outer_d * num_coils) / (2 * math.pi)
-        # Place at either calculated minimum radius or 40% of motor radius, whichever is larger
-        mean_radius = max(min_radius * 1.1, motor_diameter * COIL_RADIUS_RATIO)
+        # Calculate placement radius - start from the inside and work outward
+        base_radius = motor_radius * COIL_RADIUS_RATIO
 
-        if mean_radius + coil_outer_d / 2 > motor_diameter / 2:
-            raise ValueError("Coil positions exceed motor diameter. Adjust coil size or number of coils.")
+        # Calculate minimum spacing between coil centers
+        min_spacing = coil_outer_d * 1.1  # Add 10% margin
 
+        # Calculate minimum radius needed for coils
+        min_radius = (min_spacing * num_coils) / (2 * math.pi)
+
+        # Use the larger of the calculated values
+        placement_radius = max(base_radius, min_radius)
+
+        # Verify the coils will fit within the motor diameter
+        if placement_radius + coil_outer_d / 2 > motor_radius:
+            # Try to reduce the coil spacing if possible
+            if min_radius + coil_outer_d / 2 > motor_radius:
+                raise ValueError(
+                    f"Coils too large to fit {num_coils} positions. "
+                    f"Max coil diameter should be {(motor_radius * 2 / num_coils) * 0.9:.1f}mm"
+                )
+            placement_radius = motor_radius - coil_outer_d / 2
+
+        # Calculate positions
         angle_step = 360 / num_coils
-
         for i in range(num_coils):
-            angle = i * angle_step
-            x = mean_radius * math.cos(math.radians(angle))
-            y = mean_radius * math.sin(math.radians(angle))
+            angle = math.radians(i * angle_step)
+            x = placement_radius * math.cos(angle)
+            y = placement_radius * math.sin(angle)
             positions.append((x, y))
 
-        if any(
-                math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) < coil_outer_d
-                for (x1, y1), (x2, y2) in itertools.combinations(positions, 2)
-        ):
-            raise ValueError("Calculated coil positions overlap. Adjust coil size or number of coils.")
+        # Verify no overlaps
+        for (x1, y1), (x2, y2) in itertools.combinations(positions, 2):
+            distance = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+            if distance < coil_outer_d:
+                raise ValueError(
+                    f"Coil overlap detected. Distance between centers: {distance:.1f}mm, "
+                    f"Coil diameter: {coil_outer_d:.1f}mm"
+                )
 
         return positions
 
@@ -176,54 +195,115 @@ class AxialFluxCalculator:
         configurations = []
 
         # Calculate basic parameters
-        circumference = math.pi * self.specs.diameter
         speed_rad_s = self.specs.speed * 2 * math.pi / 60
         power = self.specs.torque * speed_rad_s
         current = power / self.specs.voltage
 
+        # Scale backing thickness with motor size and target thickness
+        thickness_scale = self.specs.target_thickness / 50  # Reference thickness of 50mm
+        diameter_scale = self.specs.diameter / 300  # Reference diameter of 300mm
+        overall_scale = (thickness_scale + diameter_scale) / 2
+
+        scaled_rotor_backing = min(rotor_backing_mm * overall_scale, 40)  # Increased cap to 40mm
+        scaled_stator_backing = min(stator_backing_mm * overall_scale, 30)  # Increased cap to 30mm
+
+        target_stator_thickness = (
+                self.specs.target_thickness -
+                (2 * scaled_rotor_backing) -
+                4  # 2mm air gap on each side for larger motor
+        )
+
         # Try different numbers of pole pairs
-        for pole_pairs in range(4, 13, 2):  # 8 to 24 poles
+        for pole_pairs in range(4, 17, 2):  # Increased range for larger motor
             num_magnets = pole_pairs * 2
-            num_coils = num_magnets * 3 // 4  # Typical ratio for axial flux
-            # NOTE: num_coils = num_magnets * 3 // 4 are based on typical ratios but may not always apply.
-            # Allow these ratios to be configurable or validate them against real-world constraints.
+            num_coils = num_magnets * 3 // 4
 
-            # Calculate magnet thickness based on power requirements
-            magnet_thickness = self.calculate_magnet_thickness(power, num_magnets)
+            # Adjusted scaling factors for larger motors
+            motor_scale_factor = (self.specs.diameter / 300) * (self.specs.target_thickness / 50)
+            size_factor = (1 - (num_coils / 32)) * motor_scale_factor  # Adjusted coil count scaling
 
-            # Calculate coil dimensions
-            inner_diameter = self.specs.diameter * 0.3  # 30% of motor diameter
-            outer_diameter = self.specs.diameter * 0.45  # 45% of motor diameter (reduced from 70%)
+            # Scale dimensions with motor size
+            inner_diameter = self.specs.diameter * 0.15 * size_factor
+            outer_diameter = self.specs.diameter * 0.25 * size_factor
 
             try:
+                # Calculate magnet thickness based on power requirements and scale with size
+                base_magnet_thickness = self.calculate_magnet_thickness(power, num_magnets)
+                scaled_magnet_thickness = base_magnet_thickness * overall_scale
+
+                # Verify coil positions
+                CoilLayoutCalculator.calculate_coil_positions(
+                    num_coils,
+                    self.specs.diameter,
+                    outer_diameter
+                )
+
+                # Calculate coil specs with scaled target height
+                target_coil_height = min(
+                    target_stator_thickness - scaled_stator_backing,
+                    100 * overall_scale  # Increased cap for larger motors
+                )
+
                 coil_specs = WireCalculator.calculate_coil_specs(
-                    self.specs.voltage / num_coils,  # Voltage per coil
+                    self.specs.voltage / num_coils,
                     current,
                     inner_diameter,
-                    outer_diameter
+                    outer_diameter,
+                    target_coil_height
                 )
 
                 config = MotorConfiguration(
                     num_magnets=num_magnets,
                     num_coils=num_coils,
-                    magnet_thickness=magnet_thickness,
+                    magnet_thickness=scaled_magnet_thickness,
                     coil_thickness=coil_specs.height,
-                    air_gap=1.0,  # mm, typical minimum air gap
-                    stator_thickness=coil_specs.height + stator_backing_mm,
-                    rotor_thickness=magnet_thickness + rotor_backing_mm,
+                    air_gap=2.0,  # Increased air gap for larger motor
+                    stator_thickness=coil_specs.height + scaled_stator_backing,
+                    rotor_thickness=scaled_magnet_thickness + scaled_rotor_backing,
                     coil_specs=coil_specs
                 )
 
-                configurations.append(config)
+                total_thickness = (
+                        config.stator_thickness +
+                        2 * config.rotor_thickness +
+                        2 * config.air_gap
+                )
+
+                # Relaxed thickness tolerance for larger motors
+                thickness_tolerance = max(self.specs.target_thickness * 0.25, 50)  # 25% or 50mm, whichever is larger
+                if abs(total_thickness - self.specs.target_thickness) <= thickness_tolerance:
+                    configurations.append(config)
+
             except ValueError as e:
-                continue  # Skip invalid configurations
+                print(f"Skipping configuration with {num_coils} coils: {str(e)}")
+                continue
+
+        if not configurations:
+            raise ValueError(
+                f"No valid configurations found for {self.specs.target_thickness}mm thickness. "
+                "Consider reducing target thickness or increasing motor diameter."
+            )
+
+        # Sort by closest to target thickness
+        configurations.sort(key=lambda x: abs(
+            (x.rotor_thickness * 2 + x.stator_thickness + x.air_gap * 2) -
+            self.specs.target_thickness
+        ))
 
         return configurations
 
     def calculate_magnet_thickness(self, power: float, num_magnets: int, base_thickness_mm: float = 3) -> float:
         """Calculate required magnet thickness based on power and number of magnets."""
-        power_factor = math.sqrt(power / 1000)  # Scale with square root of power
-        return base_thickness_mm * power_factor
+        # Scale thickness with square root of power and motor size
+        power_factor = math.sqrt(power / 1000)
+        size_factor = math.sqrt(self.specs.diameter / 300)
+        thickness = base_thickness_mm * power_factor * size_factor
+
+        # Adjusted bounds for larger motors
+        min_thickness = 2 * size_factor
+        max_thickness = 30 * size_factor  # Increased maximum thickness
+
+        return min(max(thickness, min_thickness), max_thickness)
 
 
 class MotorDesigner:
@@ -355,7 +435,7 @@ module coil() {{
     }}
 
     // Wire winding visualization
-    color("Copper")
+    color("PeachPuff")
     translate([0, 0, 0.5])  // Slight offset for visibility
     difference() {{
         cylinder(h={self.config.coil_specs.height - 1}, 
@@ -489,12 +569,12 @@ def main():
     # )
 
     specs = MotorSpecs(
-        diameter=300,  # 300mm diameter
+        diameter=200,  # 200mm diameter
         torque=10,  # 10Nm
         voltage=48,  # 48V
         speed=1000,  # 1000 RPM
-        shaft_diameter=20,  # 20mm shaft
-        target_thickness=500  # 100mm total thickness
+        shaft_diameter=10,  # 10mm shaft
+        target_thickness=125  # 125mm total thickness
     )
 
     # Create designer and generate design
