@@ -5,14 +5,6 @@ import os
 
 
 @dataclass
-class MotorSpecs:
-    diameter: float  # mm
-    torque: float  # Nm
-    voltage: float  # V
-    speed: float  # RPM
-
-
-@dataclass
 class WireSpecs:
     gauge: int
     diameter: float  # mm
@@ -68,6 +60,8 @@ class WireCalculator:
     def select_wire(current: float) -> WireSpecs:
         """Select appropriate wire gauge and number of parallel strands based on current requirements."""
         for wire in sorted(WireCalculator.WIRE_GAUGES.values(), key=lambda x: x.gauge):
+
+            # TODO: Allow required_strands limit to be configurable
             # Calculate required parallel strands (with 20% safety margin)
             required_strands = math.ceil((current * 1.2) / wire.current_capacity)
 
@@ -90,6 +84,7 @@ class WireCalculator:
         """Calculate coil specifications based on voltage and current requirements."""
         wire = WireCalculator.select_wire(current)
 
+        # TODO: rpm_per_volt needs to be passed.
         # Calculate required number of turns based on voltage
         # Adjusted voltage constant for more realistic turn count
         rpm_per_volt = 20  # Reduced KV rating for more turns
@@ -120,6 +115,8 @@ class WireCalculator:
 
 
 class CoilLayoutCalculator:
+    # TODO: calculate_coil_positions might not produce valid positions.
+    #  Add validation to ensure calculated positions fit within the motor diameter.
     @staticmethod
     def calculate_coil_positions(num_coils: int, motor_diameter: float, coil_outer_d: float) -> List[
         Tuple[float, float]]:
@@ -160,6 +157,8 @@ class AxialFluxCalculator:
         for pole_pairs in range(4, 13, 2):  # 8 to 24 poles
             num_magnets = pole_pairs * 2
             num_coils = num_magnets * 3 // 4  # Typical ratio for axial flux
+            # NOTE: num_coils = num_magnets * 3 // 4 are based on typical ratios but may not always apply.
+            # Allow these ratios to be configurable or validate them against real-world constraints.
 
             # Calculate magnet thickness based on power requirements
             magnet_thickness = self.calculate_magnet_thickness(power, num_magnets)
@@ -176,6 +175,7 @@ class AxialFluxCalculator:
                     outer_diameter
                 )
 
+                # TODO: stator_backing and rotor_backing need to be passed.
                 # Calculate structural thicknesses
                 stator_backing = 5  # mm
                 rotor_backing = 5  # mm
@@ -196,7 +196,7 @@ class AxialFluxCalculator:
                 continue  # Skip invalid configurations
 
         return configurations
-
+    # TODO: base_thickness needs to be passed.
     def calculate_magnet_thickness(self, power: float, num_magnets: int) -> float:
         """Calculate required magnet thickness based on power and number of magnets."""
         base_thickness = 3  # mm
@@ -226,7 +226,7 @@ class MotorDesigner:
             if abs(total_thickness - self.specs.target_thickness) <= 5:  # 5mm tolerance
                 valid_configs.append(config)
 
-        if not valid_configs:
+        if not valid_configs and len(configurations) > 0:
             print("Warning: No configurations meet the target thickness. Using closest match.")
             # Find closest match
             configurations.sort(key=lambda x: abs(
@@ -365,6 +365,8 @@ stator();
         with open(filename, 'w') as f:
             f.write(scad_code)
 
+    # TODO: _generate_magnets involves magic numbers.
+    #  Replace magic numbers with named constants to improve readability.
     def _generate_magnets(self) -> str:
         """Generate OpenSCAD code for magnet placement."""
         magnet_angle = 360 / self.config.num_magnets
@@ -384,6 +386,8 @@ stator();
 
         return "\n".join(magnets)
 
+    # TODO: _generate_coils involves magic numbers.
+    #  Replace magic numbers with named constants to improve readability.
     def _generate_coils(self) -> str:
         """Generate OpenSCAD code for coil placement."""
         positions = CoilLayoutCalculator.calculate_coil_positions(
