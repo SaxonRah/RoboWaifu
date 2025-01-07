@@ -513,7 +513,7 @@ if __name__ == "__main__":
     try:
         optimal_combinations = find_optimal_combinations(
             load_mass_kg=34,
-            desired_precision_deg=0.1,
+            desired_precision_deg=0.11,
             sort_by=SortCriteria.EFFICIENCY
         )
         print_results(optimal_combinations, format_type="table")
