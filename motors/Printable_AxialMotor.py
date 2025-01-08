@@ -412,7 +412,30 @@ def generate_printable_parts(params, output_prefix="motor_part"):
 
 # Example usage
 if __name__ == "__main__":
-    params = {
+
+    small_motor_params = {
+        "Wire_Diameter": 0.65,
+        "p": 12,  # poles
+        "c": 18,  # coils
+        "ro": 35,  # outer radius in mm
+        "ri": 15,  # inner radius in mm
+        "coil_width": 8,
+        "coil_length": 15,
+        "magnet_width": 10,  # 10mmX3mm
+        #  3mmX2mmX88, 8mmX2mmX70, 10mmX2mmX50, 12mmX2mmX25, 15mmX2mmX20, 32mmX2mmX2
+        "magnet_length": 10,
+        "magnet_thickness": 3,
+        "magnet_type": "circle",  # circle or square
+        # if circle then the magnet_width is used for the circle's diameter.
+        "stator_thickness": 10,
+        "rotor_thickness": 5,
+        "air_gap": 1,
+        "shaft_radius": 10,
+        "coil_orientation": "axial",  # axial or radial
+        "cutaway": True  # True or False
+    }
+
+    big_motor_params = {
         "Wire_Diameter": 0.65,
         "p": 12,  # poles
         "c": 18,  # coils
@@ -433,5 +456,5 @@ if __name__ == "__main__":
         "cutaway": False  # True or False
     }
 
-    parts = generate_printable_parts(params)
+    parts = generate_printable_parts(big_motor_params)
     print("3D printable motor parts generated successfully!")
