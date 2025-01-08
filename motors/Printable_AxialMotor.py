@@ -64,16 +64,17 @@ copper_coil();
         # Calculate slot dimensions
         slot_width = self.params.get('coil_width', 8) + self.tolerance
         slot_depth = self.params.get('coil_length', 15) + self.tolerance
-        stator_plate_thickness = 4  # Base thickness of stator plate
 
+        stator_plate_thickness = self.params.get('stator_thickness', 15) + self.tolerance
         magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
-        plate_thickness = stator_plate_thickness + magnet_depth + 2  # Add material below magnets
+        #  plate_thickness = stator_plate_thickness + magnet_depth + 2  # Add material below magnets
+        plate_thickness = stator_plate_thickness - magnet_depth
 
         return f"""
 // Printable Stator Plate
 module stator() {{
 
-    translate([0, 0, {plate_thickness}])
+    //translate([0, 0, {plate_thickness}])
     difference() {{
         // Main plate
         cylinder(h={plate_thickness}, r={outer_radius}, center=false, $fn={self.segments});
@@ -102,23 +103,37 @@ stator();
         # Calculate magnet recess dimensions
         magnet_width = self.params.get('magnet_width', 10) + self.tolerance
         magnet_length = (outer_radius - inner_radius) * 0.4  # 40% of radial space
+        #  magnet_length = self.params.get('magnet_length', 10) + self.tolerance
         magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
+        #  "magnet_type": "circle",  # circle, square, rectangle
+        magnet_type = self.params['magnet_type']
         plate_thickness = magnet_depth + 2  # Add material below magnets
+        rotor_thickness = self.params['rotor_thickness'] + magnet_depth
+
+        built_magnets = (self._generate_magnet_recesses(
+                    rotor_thickness,
+                    num_poles,
+                    angle_per_pole,
+                    magnet_type,
+                    magnet_width,
+                    magnet_length,
+                    magnet_depth)
+        )
 
         return f"""
 // Printable Rotor Plate
 module rotor() {{
     difference() {{
         // Main plate
-        cylinder(h={plate_thickness}, r={outer_radius}, center=false, $fn={self.segments});
+        cylinder(h={rotor_thickness}, r={outer_radius}, center=false, $fn={self.segments});
 
         // Center hole
         translate([0, 0, -1])
-        cylinder(h={plate_thickness + 2}, r={inner_radius}, center=false, $fn={self.segments});
+        cylinder(h={rotor_thickness + 2}, r={inner_radius}, center=false, $fn={self.segments});
 
         // Magnet recesses
         union() {{
-            {self._generate_magnet_recesses(num_poles, angle_per_pole, magnet_width, magnet_length, magnet_depth)}
+            {built_magnets}
         }}
     }}
 }}
@@ -129,10 +144,16 @@ rotor();
     def generate_housing(self):
         """Generate a printable housing for the motor assembly"""
         outer_radius = self.params['ro'] + self.wall_thickness * 2
-        height = (self.params.get('stator_thickness', 15) +
+        stator_plate_thickness = self.params.get('stator_thickness', 15) + self.tolerance
+        magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
+        #  plate_thickness = stator_plate_thickness + magnet_depth + 2  # Add material below magnets
+        plate_thickness = stator_plate_thickness + magnet_depth
+        air_gap = self.params.get('air_gap', 1)
+        height = (plate_thickness +
                   self.params.get('rotor_thickness', 5) * 2 +
-                  self.params.get('air_gap', 1) * 2 +
-                  self.wall_thickness * 2)
+                  air_gap * 4 +
+                  self.wall_thickness * 2 +
+                  air_gap * 2)
 
         return f"""
 // Motor Housing
@@ -148,6 +169,7 @@ module housing() {{
             }}
 
             // Bottom mounting points
+            // TODO: Add screw holes
             {self._generate_mounting_points(outer_radius, self.wall_thickness)}
         }}
 
@@ -164,14 +186,16 @@ housing();
         """Generate coil placement code for axial orientation"""
         coil_placements = []
         angle_per_coil = 360 / num_coils
-
-        stator_thickness = self.params.get('stator_thickness', 15)
+        # stator_thickness = self.params.get('stator_thickness', 15)
+        air_gap = self.params.get('air_gap', 1)
+        magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
+        rotor_thickness = self.params['rotor_thickness'] + magnet_depth
 
         for i in range(num_coils):
             angle = i * angle_per_coil
             coil_placements.append(f"""
             rotate([0, 0, {angle}])
-            translate([{mean_radius}, 0, {base_height}+({stator_thickness}/2)])
+            translate([{mean_radius}, 0, {rotor_thickness} + {air_gap}])
             rotate([0, 0, 90])
             copper_coil();""")
 
@@ -182,11 +206,16 @@ housing();
         coil_placements = []
         angle_per_coil = 360 / num_coils
 
+        # stator_thickness = self.params.get('stator_thickness', 15)
+        air_gap = self.params.get('air_gap', 1)
+        magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
+        rotor_thickness = self.params['rotor_thickness'] + magnet_depth
+
         for i in range(num_coils):
             angle = i * angle_per_coil
             coil_placements.append(f"""
             rotate([0, 0, {angle}])
-            translate([{mean_radius}, 0, {base_height}])
+            translate([{mean_radius}, 0, {rotor_thickness} + {air_gap}])
             rotate([90, 0, 0])
             copper_coil();""")
 
@@ -200,6 +229,17 @@ housing();
         mean_radius = (self.params['ro'] + self.params['ri']) / 2
         base_height = self.wall_thickness + air_gap
 
+        magnet_depth = self.params.get('magnet_thickness', 3) + self.tolerance
+        plate_thickness = stator_thickness + magnet_depth
+        housing_height = (
+                plate_thickness +
+                self.params.get('rotor_thickness', 5) * 2 +
+                self.params.get('air_gap', 1) * 4 +
+                self.wall_thickness * 2
+        )
+
+        rotor_thickness = self.params['rotor_thickness'] + magnet_depth
+
         # Generate coil placement based on orientation
         if self.coil_orientation == 'axial':
             coil_placement = self._generate_axial_coil_placement(num_coils, mean_radius, base_height)
@@ -209,7 +249,6 @@ housing();
         will_cutaway = self.params['cutaway']
 
         temp_assembly = f"""
-        
 // Import individual components
 use <motor_part_coil_spool.scad>
 use <motor_part_housing.scad>
@@ -222,23 +261,23 @@ use <motor_part_stator.scad>
 module assembly() {{
     // Housing at the base
     
-    translate([0, 0, -{air_gap}])
+    translate([0, 0, -({self.wall_thickness}+{air_gap})])
     color("lightgray", 0.5)
     housing();
 
-    // Stator in the middle
-    color("blue", 0.5)
-    translate([0, 0, {self.wall_thickness + air_gap}])
-    stator();
-
     // Bottom rotor
     color("red", 0.5)
-    translate([0, 0, {self.wall_thickness}])
+    translate([0, 0, 0])
     rotor();
+    
+    // Stator in the middle
+    color("blue", 0.5)
+    translate([0, 0, {rotor_thickness}+{air_gap}])
+    stator();
 
     // Top rotor
     color("red", 0.5)
-    translate([0, 0, {self.wall_thickness + air_gap + stator_thickness + air_gap}])
+    translate([0, 0, {rotor_thickness}+{stator_thickness}-{air_gap}])
     rotor();
 
     // Place coils around stator
@@ -295,7 +334,7 @@ $vpd = 400;  // View distance
                 slots.append(f"""
                 rotate([0, 0, {angle}])
                 translate([{mean_radius}, 0, {plate_thickness}-{self.wall_thickness + air_gap}])
-                cylinder(h={spool_height}, r={flange_radius}, center=false);""")
+                cylinder(h={spool_height}, r={flange_radius}, center=false, $fn={self.segments});""")
 
         else:  # radial orientation
             for i in range(num_coils):
@@ -303,21 +342,32 @@ $vpd = 400;  // View distance
                 slots.append(f"""
                 rotate([0, 0, {angle}])
                 translate([{mean_radius}, 0, {plate_thickness}-{self.wall_thickness + air_gap}])
-                cylinder(h={spool_height}, r={flange_radius}, center=false);""")
+                cylinder(h={spool_height}, r={flange_radius}, center=false, $fn={self.segments});""")
 
         return "\n".join(slots)
 
-    def _generate_magnet_recesses(self, num_poles, angle_per_pole, magnet_width, magnet_length, magnet_depth):
+    def _generate_magnet_recesses(self, rotor_thickness, num_poles, angle_per_pole, magnet_type, magnet_width, magnet_length, magnet_depth):
         """Helper method to generate magnet recesses"""
         recesses = []
         mean_radius = (self.params['ro'] + self.params['ri']) / 2
+        air_gap = self.params.get('air_gap', 1)
 
-        for i in range(num_poles):
-            angle = i * angle_per_pole
-            recesses.append(f"""
-            rotate([0, 0, {angle}])
-            translate([{mean_radius}, 0, {self.wall_thickness}])
-            cube([{magnet_length}, {magnet_width}, {magnet_depth}], center=true);""")
+        if magnet_type == "square":
+            #  //translate([{mean_radius}, 0, {self.wall_thickness}])
+            for i in range(num_poles):
+                angle = i * angle_per_pole
+                recesses.append(f"""
+                rotate([0, 0, {angle}])
+                translate([{mean_radius}, 0, {rotor_thickness}-{self.wall_thickness + air_gap}])
+                cube([{magnet_length}, {magnet_width}, {rotor_thickness}-{magnet_depth}], center=true);""")
+        else:
+            #  //translate([{mean_radius}, 0, {self.wall_thickness}])
+            for i in range(num_poles):
+                angle = i * angle_per_pole
+                recesses.append(f"""
+                rotate([0, 0, {angle}])
+                translate([{mean_radius}, 0, 0])
+                cylinder(h={rotor_thickness}-{magnet_depth}, d={magnet_width}, center=true, $fn={self.segments});""")
 
         return "\n".join(recesses)
 
@@ -370,14 +420,17 @@ if __name__ == "__main__":
         "ri": 35,  # inner radius in mm
         "coil_width": 8,
         "coil_length": 15,
-        "magnet_width": 10,
+        "magnet_width": 20,
+        "magnet_length": 10,
         "magnet_thickness": 3,
+        "magnet_type": "circle",  # circle or square
+        # if circle then the magnet_width is used for the circle's diameter.
         "stator_thickness": 15,
         "rotor_thickness": 5,
         "air_gap": 1,
         "shaft_radius": 10,
         "coil_orientation": "axial",  # axial or radial
-        "cutaway": True  # True or False
+        "cutaway": False  # True or False
     }
 
     parts = generate_printable_parts(params)

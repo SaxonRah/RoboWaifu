@@ -5,13 +5,14 @@ module housing() {
         union() {
             // Main cylinder
             difference() {
-                cylinder(h=31.0, r=69.0, center=false, $fn=100);
+                cylinder(h=38.4, r=69.0, center=false, $fn=100);
                 translate([0, 0, -2.0])
-                cylinder(h=29.0, r=67.0, 
+                cylinder(h=36.4, r=67.0, 
                         center=false, $fn=100);
             }
 
             // Bottom mounting points
+            // TODO: Add screw holes
             
             rotate([0, 0, 0.0])
             translate([59.0, 0, 0])
@@ -63,7 +64,7 @@ module housing() {
         }
 
         // Shaft hole
-        cylinder(h=32.0, r=10.2,
+        cylinder(h=39.4, r=10.2,
                 center=false, $fn=100);
     }
 }
