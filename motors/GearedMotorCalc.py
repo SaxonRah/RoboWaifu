@@ -197,7 +197,7 @@ def calculate_thermal_limits(
         wire_length: float
 ) -> Tuple[float, float]:
     """
-    Calculate temperature rise and power dissipation.
+    Calculate temperature rise and power dissipation with temperature-dependent resistivity.
 
     Args:
         motor: MotorVariant object containing motor specifications
@@ -206,9 +206,6 @@ def calculate_thermal_limits(
 
     Returns:
         Tuple[float, float]: (final_temperature, power_dissipation)
-
-    Raises:
-        ValidationError: If wire diameter is zero or invalid inputs are provided
     """
     if motor.wire_diameter <= 0:
         raise ValidationError("Wire diameter must be positive")
@@ -217,74 +214,188 @@ def calculate_thermal_limits(
     if wire_length <= 0:
         raise ValidationError("Wire length must be positive")
 
-    try:
-        wire_area = math.pi * (motor.wire_diameter / 2) ** 2
-        resistance = (
-                motor.thermal_constraints.copper_resistivity *
-                wire_length /
-                wire_area
-        )
+    tc = motor.thermal_constraints
+    wire_area = math.pi * (motor.wire_diameter / 2) ** 2
 
+    # Iterative solution for temperature-dependent resistance
+    temp = tc.ambient_temperature
+    max_iterations = 20
+    tolerance = 0.1  # °C
+    total_power_loss = 0
+
+    for _ in range(max_iterations):
+        # Calculate resistance at current temperature
+        resistance = tc.copper_resistivity * (1 + tc.temperature_coefficient * (temp - 20)) * wire_length / wire_area
+
+        # Calculate power dissipation
         power_dissipation = current ** 2 * resistance
 
-        # Add safety check for unrealistic power dissipation
-        if power_dissipation > 1000:  # Arbitrary limit of 1kW, adjust as needed
-            warnings.warn(f"Very high power dissipation detected: {power_dissipation:.2f}W")
+        # Add core losses (simplified approximation)
+        core_loss_coefficient = 2.5  # W/kg for typical electrical steel at 1T, 50Hz
+        core_volume = math.pi * (motor.outer_diameter ** 2 - motor.inner_diameter ** 2) / 4 * motor.stack_length
+        core_density = 7650  # kg/m^3 for electrical steel
+        core_mass = core_volume * core_density
+        core_losses = core_loss_coefficient * core_mass
 
-        temperature_rise = power_dissipation * motor.thermal_constraints.thermal_resistance
-        final_temp = motor.thermal_constraints.ambient_temperature + temperature_rise
+        total_power_loss = power_dissipation + core_losses
 
-        return final_temp, power_dissipation
+        # Calculate new temperature
+        new_temp = tc.ambient_temperature + total_power_loss * tc.thermal_resistance
 
-    except ZeroDivisionError:
-        raise ValidationError("Invalid wire diameter resulted in division by zero")
-    except Exception as e:
-        raise ValidationError(f"Error in thermal calculations: {str(e)}")
+        # Check convergence
+        if abs(new_temp - temp) < tolerance:
+            return new_temp, total_power_loss
+
+        temp = new_temp
+
+    warnings.warn("Thermal calculation did not converge")
+    return temp, total_power_loss
 
 
 def calculate_gear_stages(
         required_ratio: float,
         gear_params: GearParameters,
-        precision: int = 2
-) -> List[float]:
-    """Calculate optimal gear stages with practical rounding."""
-    # Validate if the ratio is feasible with the given parameters
-    if required_ratio < gear_params.min_ratio_per_stage:
-        warnings.warn(f"Required ratio {required_ratio} is below the minimum achievable stage ratio.")
-        return []
-    if required_ratio > gear_params.max_ratio_per_stage * gear_params.max_stages:
-        warnings.warn(
-            f"Required ratio {required_ratio} exceeds the maximum achievable ratio with {gear_params.max_stages} stages.")
-        return []
+        precision: int = 2,
+        ratio_tolerance: float = 0.02  # Allow 2% deviation from target ratio
+) -> Tuple[List[float], float, str]:
+    """
+    Calculate optimal gear stages with improved ratio matching and error handling.
 
-    # If single stage is enough
-    if required_ratio <= gear_params.max_ratio_per_stage:
-        return [round(required_ratio, precision)]
+    Args:
+        required_ratio: Target gear ratio
+        gear_params: GearParameters object containing gear specifications
+        precision: Decimal places for ratio rounding
+        ratio_tolerance: Acceptable deviation from target ratio (as fraction)
 
-    # Multi-stage calculation
-    num_stages = min(
-        math.ceil(math.log(required_ratio) / math.log(gear_params.max_ratio_per_stage)),
-        gear_params.max_stages
-    )
+    Returns:
+        Tuple[List[float], float, str]: (stage_ratios, actual_ratio, status_message)
+    """
 
-    # Calculate initial ratio per stage
-    ratio_per_stage = required_ratio ** (1 / num_stages)
-    rounded_ratio = round(ratio_per_stage, precision)
+    def is_ratio_acceptable(actual: float, target: float, tolerance: float) -> bool:
+        """Check if actual ratio is within tolerance of target ratio."""
+        return abs(actual - target) / target <= tolerance
 
-    # Adjust last stage to achieve exact total ratio
-    stages = [rounded_ratio] * (num_stages - 1)
-    last_stage = required_ratio / math.prod(stages)
+    def get_stage_options(ratio: float, max_ratio: float) -> List[int]:
+        """Calculate possible number of stages for achieving target ratio."""
+        return list(range(1, gear_params.max_stages + 1))
 
-    if gear_params.min_ratio_per_stage <= last_stage <= gear_params.max_ratio_per_stage:
-        stages.append(round(last_stage, precision))
+    # Input validation
+    if required_ratio <= 0:
+        return [], 0.0, "Invalid required ratio: must be positive"
+
+    # Check if single stage is possible
+    if gear_params.min_ratio_per_stage <= required_ratio <= gear_params.max_ratio_per_stage:
+        return [round(required_ratio, precision)], required_ratio, "Single stage solution found"
+
+    # Try different numbers of stages
+    best_solution = None
+    min_error = float('inf')
+    status = "No valid solution found"
+
+    for num_stages in get_stage_options(required_ratio, gear_params.max_ratio_per_stage):
+        # Calculate ideal ratio per stage
+        ratio_per_stage = required_ratio ** (1 / num_stages)
+
+        if not (gear_params.min_ratio_per_stage <= ratio_per_stage <= gear_params.max_ratio_per_stage):
+            continue
+
+        # Try different roundings of the ratio_per_stage
+        for round_precision in range(precision, precision + 2):
+            rounded_ratio = round(ratio_per_stage, round_precision)
+
+            # Calculate last stage separately to minimize error
+            if num_stages > 1:
+                intermediate_stages = [rounded_ratio] * (num_stages - 1)
+                intermediate_product = math.prod(intermediate_stages)
+                last_stage = required_ratio / intermediate_product
+
+                if not (gear_params.min_ratio_per_stage <= last_stage <= gear_params.max_ratio_per_stage):
+                    continue
+
+                stages = intermediate_stages + [round(last_stage, precision)]
+            else:
+                stages = [rounded_ratio]
+
+            actual_ratio = math.prod(stages)
+            error = abs(actual_ratio - required_ratio)
+
+            if error < min_error:
+                min_error = error
+                best_solution = stages
+                status = "Optimal solution found"
+
+    if best_solution is None:
+        # Try to find nearest achievable ratio if exact solution impossible
+        min_achievable = gear_params.min_ratio_per_stage ** gear_params.max_stages
+        max_achievable = gear_params.max_ratio_per_stage ** gear_params.max_stages
+
+        if required_ratio < min_achievable:
+            status = f"Required ratio too low. Minimum achievable: {min_achievable:.2f}"
+        elif required_ratio > max_achievable:
+            status = f"Required ratio too high. Maximum achievable: {max_achievable:.2f}"
+
+        return [], 0.0, status
+
+    actual_ratio = math.prod(best_solution)
+    if is_ratio_acceptable(actual_ratio, required_ratio, ratio_tolerance):
+        return best_solution, actual_ratio, status
     else:
-        warnings.warn(
-            f"Could not achieve exact ratio {required_ratio} with {num_stages} stages. "
-            f"Closest approximation: {stages + [round(last_stage, precision)]}"
-        )
-        return []
+        return [], 0.0, f"Best solution {actual_ratio:.2f}:1 exceeds tolerance of {ratio_tolerance * 100}%"
 
-    return stages
+
+def validate_gear_solution(
+        stages: List[float],
+        actual_ratio: float,
+        required_ratio: float,
+        gear_params: GearParameters
+) -> Dict[str, Any]:
+    """
+    Validate a gear stage solution and provide detailed diagnostics.
+
+    Args:
+        stages: List of gear ratios for each stage
+        actual_ratio: Achieved total ratio
+        required_ratio: Target ratio
+        gear_params: GearParameters object
+
+    Returns:
+        Dict containing validation results and diagnostics
+    """
+    diagnostics = {
+        "valid": True,
+        "issues": [],
+        "stage_analysis": [],
+        "error_percentage": abs(actual_ratio - required_ratio) / required_ratio * 100
+    }
+
+    # Validate number of stages
+    if len(stages) > gear_params.max_stages:
+        diagnostics["valid"] = False
+        diagnostics["issues"].append(f"Too many stages: {len(stages)} > {gear_params.max_stages}")
+
+    # Analyze each stage
+    for i, ratio in enumerate(stages, 1):
+        stage_info = {
+            "stage": i,
+            "ratio": ratio,
+            "within_limits": True,
+            "issues": []
+        }
+
+        if ratio < gear_params.min_ratio_per_stage:
+            stage_info["within_limits"] = False
+            stage_info["issues"].append(f"Ratio {ratio:.2f} below minimum {gear_params.min_ratio_per_stage}")
+
+        if ratio > gear_params.max_ratio_per_stage:
+            stage_info["within_limits"] = False
+            stage_info["issues"].append(f"Ratio {ratio:.2f} above maximum {gear_params.max_ratio_per_stage}")
+
+        if not stage_info["within_limits"]:
+            diagnostics["valid"] = False
+
+        diagnostics["stage_analysis"].append(stage_info)
+
+    return diagnostics
 
 
 def calculate_motor_specs_with_gearing(
@@ -316,13 +427,15 @@ def calculate_motor_specs_with_gearing(
         )
 
         # Calculate gear stages
-        gear_stages = calculate_gear_stages(min_gear_ratio, gear_params)
-        total_gear_ratio = math.prod(gear_stages)
-
+        gear_stages, actual_ratio, status = calculate_gear_stages(min_gear_ratio, gear_params)
         if not gear_stages:
-            raise ValidationError(
-                f"Could not achieve the required gear ratio {min_gear_ratio} with the selected gear type."
-            )
+            raise ValidationError(f"Gear stage calculation failed: {status}")
+
+        validation = validate_gear_solution(gear_stages, actual_ratio, min_gear_ratio, gear_params)
+        if not validation["valid"]:
+            raise ValidationError(f"Invalid gear solution: {validation['issues']}")
+
+        total_gear_ratio = math.prod(gear_stages)
 
         # Calculate stage-specific efficiencies
         stage_efficiencies = gear_params.efficiency_per_stage[:len(gear_stages)]
@@ -512,7 +625,7 @@ def print_results(combinations: List[Dict], format_type: str = "table"):
 if __name__ == "__main__":
     try:
         optimal_combinations = find_optimal_combinations(
-            load_mass_kg=34,
+            load_mass_kg=20,
             desired_precision_deg=0.11,
             sort_by=SortCriteria.EFFICIENCY
         )

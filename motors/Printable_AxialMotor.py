@@ -453,7 +453,7 @@ if __name__ == "__main__":
         "air_gap": 1,
         "shaft_radius": 10,
         "coil_orientation": "axial",  # axial or radial
-        "cutaway": False  # True or False
+        "cutaway": False  # True or False (Cuts model in half for cutaway view)
     }
 
     parts = generate_printable_parts(big_motor_params)
