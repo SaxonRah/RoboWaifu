@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Motor Configuration Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-bottom: 2rem;
+        }
+        .highlight {
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+        .stat-label {
+            color: #6B7280;
+            font-size: 0.875rem;
+        }
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+
+<div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Motor Configuration Analysis</h1>
+    <p class="text-gray-600 mb-4">Generated on 2025-01-12 23:46:19</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-2">Best Efficiency</h3>
+        <p class="text-2xl font-bold text-green-600 mb-2">66.9%</p>
+        <p class="text-gray-600">
+            4P/6C<br>
+            5 turns<br>
+            0.090 Nm
+        </p>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-2">Highest Torque</h3>
+        <p class="text-2xl font-bold text-blue-600 mb-2">0.105 Nm</p>
+        <p class="text-gray-600">
+            8P/14C<br>
+            5 turns<br>
+            49.5% efficiency
+        </p>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-2">Simplest Design</h3>
+        <p class="text-2xl font-bold text-purple-600 mb-2">4P/6C</p>
+        <p class="text-gray-600">
+            5 turns<br>
+            66.9% efficiency<br>
+            0.090 Nm
+        </p>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-2">Most Compact</h3>
+        <p class="text-2xl font-bold text-yellow-600 mb-2">46.0mm</p>
+        <p class="text-gray-600">
+            4P/6C<br>
+            66.9% efficiency<br>
+            0.090 Nm
+        </p>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Efficiency vs Torque</h2>
+        <div class="chart-container">
+            <canvas id="efficiencyTorqueChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Size Comparison</h2>
+        <div class="chart-container">
+            <canvas id="sizeChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Current vs Resistance</h2>
+        <div class="chart-container">
+            <canvas id="currentResistanceChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Poles/Coils Distribution</h2>
+        <div class="chart-container">
+            <canvas id="polesCoilsChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Turns vs Efficiency</h2>
+        <div class="chart-container">
+            <canvas id="turnsEfficiencyChart"></canvas>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow">
+        <h2 class="text-xl font-bold mb-4">Power Analysis</h2>
+        <div class="chart-container">
+            <canvas id="powerAnalysisChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-bold mb-4">All Configurations</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full table-auto">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="px-4 py-2">Configuration</th>
+                    <th class="px-4 py-2">Turns</th>
+                    <th class="px-4 py-2">Torque (Nm)</th>
+                    <th class="px-4 py-2">Current (A)</th>
+                    <th class="px-4 py-2">Efficiency (%)</th>
+                    <th class="px-4 py-2">Size (mm)</th>
+                </tr>
+            </thead>
+            <tbody>
+            <tr class="border-t">
+                <td class="px-4 py-2">4P/6C</td>
+                <td class="px-4 py-2">5</td>
+                <td class="px-4 py-2">0.090</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">66.9</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">6P/10C</td>
+                <td class="px-4 py-2">5</td>
+                <td class="px-4 py-2">0.100</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">58.2</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">8P/10C</td>
+                <td class="px-4 py-2">6</td>
+                <td class="px-4 py-2">0.090</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">53.8</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">8P/12C</td>
+                <td class="px-4 py-2">5</td>
+                <td class="px-4 py-2">0.090</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">53.8</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">8P/14C</td>
+                <td class="px-4 py-2">5</td>
+                <td class="px-4 py-2">0.105</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">49.5</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">10P/12C</td>
+                <td class="px-4 py-2">6</td>
+                <td class="px-4 py-2">0.087</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">48.6</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            <tr class="border-t">
+                <td class="px-4 py-2">12P/18C</td>
+                <td class="px-4 py-2">5</td>
+                <td class="px-4 py-2">0.090</td>
+                <td class="px-4 py-2">10.0</td>
+                <td class="px-4 py-2">40.8</td>
+                <td class="px-4 py-2">∅46.0×15.0</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const configData = [{"config": "4P/6C", "poles": 4, "coils": 6, "turns": 5, "torque": 0.09, "resistance": 0.16, "current": 10.0, "efficiency": 66.9, "diameter": 46.0, "thickness": 15.0}, {"config": "6P/10C", "poles": 6, "coils": 10, "turns": 5, "torque": 0.1, "resistance": 0.26, "current": 10.0, "efficiency": 58.2, "diameter": 46.0, "thickness": 15.0}, {"config": "8P/10C", "poles": 8, "coils": 10, "turns": 6, "torque": 0.09, "resistance": 0.31, "current": 10.0, "efficiency": 53.8, "diameter": 46.0, "thickness": 15.0}, {"config": "8P/12C", "poles": 8, "coils": 12, "turns": 5, "torque": 0.09, "resistance": 0.31, "current": 10.0, "efficiency": 53.8, "diameter": 46.0, "thickness": 15.0}, {"config": "8P/14C", "poles": 8, "coils": 14, "turns": 5, "torque": 0.105, "resistance": 0.37, "current": 10.0, "efficiency": 49.5, "diameter": 46.0, "thickness": 15.0}, {"config": "10P/12C", "poles": 10, "coils": 12, "turns": 6, "torque": 0.087, "resistance": 0.38, "current": 10.0, "efficiency": 48.6, "diameter": 46.0, "thickness": 15.0}, {"config": "12P/18C", "poles": 12, "coils": 18, "turns": 5, "torque": 0.09, "resistance": 0.47, "current": 10.0, "efficiency": 40.8, "diameter": 46.0, "thickness": 15.0}];
+
+    const commonTooltip = (context) => {
+        const data = context.raw;
+        return [
+            `Config: ${configData[context.dataIndex].config}`,
+            `Torque: ${data.torque?.toFixed(3) || data.x?.toFixed(3)} Nm`,
+            `Efficiency: ${data.efficiency?.toFixed(1) || data.y?.toFixed(1)}%`,
+            `Current: ${configData[context.dataIndex].current.toFixed(2)}A`,
+            `Turns: ${configData[context.dataIndex].turns}`,
+            `Size: ∅${configData[context.dataIndex].diameter}×${configData[context.dataIndex].thickness}mm`
+        ];
+    };
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: commonTooltip
+                }
+            }
+        }
+    };
+
+    // Create Efficiency vs Torque Chart
+    new Chart(document.getElementById('efficiencyTorqueChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Configurations',
+                data: configData.map(c => ({
+                    x: c.torque,
+                    y: c.efficiency,
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: '#4CAF50'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Torque (Nm)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Efficiency (%)'
+                    },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Create Size Comparison Chart
+    new Chart(document.getElementById('sizeChart'), {
+        type: 'bubble',
+        data: {
+            datasets: [{
+                label: 'Motor Sizes',
+                data: configData.map(c => ({
+                    x: c.diameter,
+                    y: c.thickness,
+                    r: c.torque * 10,
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Diameter (mm)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Thickness (mm)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Create Current vs Resistance Chart
+    new Chart(document.getElementById('currentResistanceChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Operating Points',
+                data: configData.map(c => ({
+                    x: c.resistance,
+                    y: c.current,
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: '#FF9800'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Resistance (Ω)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Current (A)'
+                    }
+                }
+            }
+        }
+    });
+
+    // Create Poles/Coils Distribution Chart
+    new Chart(document.getElementById('polesCoilsChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Configurations',
+                data: configData.map(c => ({
+                    x: c.poles,
+                    y: c.coils,
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: '#9C27B0'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Number of Poles'
+                    },
+                    ticks: {
+                        stepSize: 2
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Number of Coils'
+                    },
+                    ticks: {
+                        stepSize: 2
+                    }
+                }
+            }
+        }
+    });
+
+    // Create Turns vs Efficiency Chart
+    new Chart(document.getElementById('turnsEfficiencyChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Configurations',
+                data: configData.map(c => ({
+                    x: c.turns,
+                    y: c.efficiency,
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: '#2196F3'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Turns per Coil'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Efficiency (%)'
+                    },
+                    min: 0,
+                    max: 100
+                }
+            }
+        }
+    });
+
+    // Create Power Analysis Chart
+    new Chart(document.getElementById('powerAnalysisChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Power Output vs Input',
+                data: configData.map(c => ({
+                    x: c.current * 12, // Input power (V*I)
+                    y: c.torque * (2 * Math.PI * 3000 / 60), // Mechanical power (T*ω)
+                    torque: c.torque,
+                    efficiency: c.efficiency
+                })),
+                backgroundColor: '#F44336'
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Input Power (W)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Output Power (W)'
+                    }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

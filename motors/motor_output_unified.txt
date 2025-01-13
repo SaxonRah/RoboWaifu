@@ -1,0 +1,86 @@
+Motor Design Analysis Results
+============================
+
+Target Parameters:
+- Torque range: 0.08 to 0.12 Nm
+- Magnetic field: 0.857 Tesla
+- Mean radius: 14.9 mm
+
+Fixed Parameters:
+- Wire diameter: 0.65 mm
+- Voltage: 12.0 V
+- Max current: 10.0 A
+
+
+Viable Configurations (7 found):
+=======================================
+
+Configuration 1:
+- Poles: 4
+- Coils: 6
+- Turns per coil: 5
+- Estimated torque: 0.090 Nm
+- Total resistance: 0.16 Ω
+- Operating current: 10.00 A
+- Efficiency: 66.9%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 2:
+- Poles: 6
+- Coils: 10
+- Turns per coil: 5
+- Estimated torque: 0.100 Nm
+- Total resistance: 0.26 Ω
+- Operating current: 10.00 A
+- Efficiency: 58.2%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 3:
+- Poles: 8
+- Coils: 10
+- Turns per coil: 6
+- Estimated torque: 0.090 Nm
+- Total resistance: 0.31 Ω
+- Operating current: 10.00 A
+- Efficiency: 53.8%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 4:
+- Poles: 8
+- Coils: 12
+- Turns per coil: 5
+- Estimated torque: 0.090 Nm
+- Total resistance: 0.31 Ω
+- Operating current: 10.00 A
+- Efficiency: 53.8%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 5:
+- Poles: 8
+- Coils: 14
+- Turns per coil: 5
+- Estimated torque: 0.105 Nm
+- Total resistance: 0.37 Ω
+- Operating current: 10.00 A
+- Efficiency: 49.5%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 6:
+- Poles: 10
+- Coils: 12
+- Turns per coil: 6
+- Estimated torque: 0.087 Nm
+- Total resistance: 0.38 Ω
+- Operating current: 10.00 A
+- Efficiency: 48.6%
+- Dimensions: 46.0mm diameter, 15.0mm thick
+
+Configuration 7:
+- Poles: 12
+- Coils: 18
+- Turns per coil: 5
+- Estimated torque: 0.090 Nm
+- Total resistance: 0.47 Ω
+- Operating current: 10.00 A
+- Efficiency: 40.8%
+- Dimensions: 46.0mm diameter, 15.0mm thick
