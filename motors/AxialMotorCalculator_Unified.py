@@ -14,6 +14,10 @@ class AxialMotorCalculator:
         """Initialize calculator with basic required parameters"""
         self.params = given_params
 
+        # Electrical
+        self.wire_resistance = magnet_wire_resistance(self.params.wire_diameter)
+        self._validate_wire_selection()
+
         # Physical constants
         self.mu0 = 4 * math.pi * 1e-7  # H/m (vacuum permeability)
         self.copper_resistivity = 1.68e-8  # Ω⋅m at 20°C
@@ -21,6 +25,17 @@ class AxialMotorCalculator:
         # Design constraints
         self.min_air_gap = 1.0  # mm
         self.min_wall_thickness = 2.0  # mm
+
+    def _validate_wire_selection(self):
+        """Validate wire selection based on current requirements"""
+        # Calculate maximum current density (A/mm²)
+        wire_area = math.pi * (self.params.wire_diameter / 2) ** 2
+        current_density = self.params.max_current / wire_area
+
+        # Check against typical limits (5-10 A/mm² for air-cooled motors)
+        if current_density > 10:
+            print(f"Warning: Current density {current_density:.1f} A/mm² exceeds recommended maximum")
+            print("Consider using larger wire diameter")
 
     def _generate_configs(
             self) -> list[UnifiedMotorParameters]:
@@ -40,7 +55,19 @@ class AxialMotorCalculator:
         coil_multipliers = [1.25, 1.5, 1.75, 2.0]  # Coil to pole ratios
         min_turns = 5
         max_turns = 100
-        turns_range = range(min_turns, max_turns + 1, 5)
+        # turns_range = range(min_turns, max_turns + 1, 5)
+
+        # Calculate wire area for current density checks
+        max_current_density = 7.0  # A/mm² for continuous operation
+        peak_current_density = 15.0  # A/mm² absolute maximum
+        """
+        For 0.65mm wire
+            Continuous duty: 4-6 A/mm²
+            Intermittent duty: 6-10 A/mm²
+            Peak (short duration): 10-20 A/mm²
+        """
+        wire_area_mm2 = math.pi * (self.params.wire_diameter / 2) ** 2
+        max_safe_current = peak_current_density * wire_area_mm2  # max_current_density A/mm² max for air-cooled motors
 
         # Calculate torque tolerance range
         min_torque = self.params.target_torque * (1 - self.params.tolerance)
@@ -67,30 +94,56 @@ class AxialMotorCalculator:
                 adjusted_turns_range = range(start_turns, max_turns + 1, 5)
 
                 for turns in adjusted_turns_range:
-                    # Calculate resistance
+                    # 1. First calculate all parameters
                     resistance = self.calculate_resistance(mean_radius, num_coils, turns)
-
-                    # Calculate current (limited by max current)
                     current = min(self.params.voltage / resistance, self.params.max_current)
-
-                    if current < 0.5:  # Skip if current is too low
-                        continue
-
-                    # Calculate torque
+                    current_density = current / wire_area_mm2
                     torque = self.calculate_torque(
                         mean_radius, num_poles, num_coils, turns, current, b_field
                     )
+                    efficiency = self.calculate_efficiency(current, resistance)
 
-                    # Check if configuration meets torque requirements
-                    if min_torque <= torque <= max_torque:
-                        # Calculate efficiency
-                        efficiency = self.calculate_efficiency(current, resistance)
+                    # 2. Log the configuration's key parameters
+                    print(f"Info: Config {num_poles}P/{num_coils}C with {turns} turns:")
+                    print(f"  Current Density: {current_density:.1f} A/mm²")
+                    print(f"  Current: {current:.2f}A")
+                    print(f"  Torque: {torque:.3f} Nm")
+                    print(f"  Efficiency: {efficiency:.1f}%")
 
-                        # Skip configurations with very low efficiency
-                        if efficiency < 40:
-                            continue
+                    # 3. Check all requirements together
+                    is_valid = True
+                    validation_messages = []
 
-                        # Create configuration object using UnifiedMotorParameters
+                    # Check minimum current
+                    if current < 0.5:
+                        is_valid = False
+                        validation_messages.append("Current too low")
+
+                    # Check peak current density limit
+                    if current > max_safe_current:
+                        is_valid = False
+                        validation_messages.append(f"Exceeds peak current density: {current_density:.1f} A/mm²")
+
+                    # Check continuous current density limit
+                    if current_density > max_current_density:
+                        is_valid = False
+                        validation_messages.append(f"Exceeds continuous current density: {current_density:.1f} A/mm²")
+
+                    # Check torque requirements
+                    # if not (min_torque <= torque <= max_torque):
+                    if torque < min_torque:  # Only check minimum torque requirement
+                        is_valid = False
+                        # validation_messages.append(
+                        #     f"Torque {torque:.3f} Nm outside range {min_torque:.3f}-{max_torque:.3f} Nm")
+                        validation_messages.append(f"Torque {torque:.3f} Nm below minimum {min_torque:.3f} Nm")
+
+                    # Check efficiency
+                    # if efficiency < 40:
+                    #     is_valid = False
+                    #     validation_messages.append(f"Efficiency too low: {efficiency:.1f}%")
+
+                    # If configuration passes all checks, add it
+                    if is_valid:
                         config = UnifiedMotorParameters(
                             poles=num_poles,
                             coils=num_coils,
@@ -117,16 +170,22 @@ class AxialMotorCalculator:
                             resistance=resistance,
                             current=current
                         )
-
                         configs.append(config)
-
-                        # Print configuration details
-                        print(f"\nFound viable config!")
+                        print("\nFound viable config!")
                         print(f"Poles: {num_poles}, Coils: {num_coils}, Turns: {turns}")
-                        print(f"Current: {current:.1f}A")
+                        print(f"Current: {current:.1f}A (Current Density: {current_density:.1f} A/mm²)")
                         print(f"Torque: {torque:.3f} Nm")
                         print(f"Efficiency: {efficiency:.1f}%")
                         print(f"Resistance: {resistance:.2f} Ω")
+                    else:
+                        print(f"  Invalid configuration: {', '.join(validation_messages)}")
+        if not configs:
+            print("\nWarning: No valid configurations found.")
+            print(f"Consider one of the following adjustments:")
+            print("1. Increase wire diameter (currently {:.2f}mm)".format(self.params.wire_diameter))
+            print("2. Increase voltage (currently {:.1f}V)".format(self.params.voltage))
+            print("3. Decrease target torque (currently {:.3f}Nm)".format(self.params.target_torque))
+            print("4. Adjust tolerance range (currently ±{:.0f}%)".format(self.params.tolerance * 100))
 
         return configs
 
@@ -188,9 +247,13 @@ class AxialMotorCalculator:
         # Total wire length
         total_length = turn_length * turns_per_coil * num_coils
 
-        return (self.copper_resistivity * total_length) / (math.pi * (self.params.wire_diameter * 1e-3 / 2) ** 2)
+        # Calculate resistance using magnet wire resistance per meter
+        resistance_per_meter = magnet_wire_resistance(self.params.wire_diameter)
 
-    def calculate_efficiency(
+        return resistance_per_meter * total_length
+        #  return (self.copper_resistivity * total_length) / (math.pi * (self.params.wire_diameter * 1e-3 / 2) ** 2)
+
+    def calculate_efficiency_doublecountinglosses(
             self,
             current: float,
             resistance: float) -> float:
@@ -207,6 +270,57 @@ class AxialMotorCalculator:
         # Efficiency calculation
         if input_power > 0:
             return (mech_power - copper_loss) / input_power * 100
+        return 0.0
+
+    def calculate_efficiency_ignoresotherlosses(
+    # def calculate_efficiency(
+            self,
+            current: float,
+            resistance: float) -> float:
+        """Calculate motor efficiency"""
+        # Power losses in copper
+        copper_loss = current * current * resistance
+
+        # Total input power
+        input_power = self.params.voltage * current
+
+        # Mechanical power is what remains after losses
+        mech_power = input_power - copper_loss
+
+        # Efficiency calculation
+        if input_power > 0:
+            return (mech_power / input_power) * 100
+        return 0.0
+
+    # def calculate_efficiency_new(
+    def calculate_efficiency(
+            self,
+            current: float,
+            resistance: float) -> float:
+        """Calculate motor efficiency"""
+        # Input electrical power
+        input_power = self.params.voltage * current
+
+        # Copper losses (I²R)
+        copper_loss = current * current * resistance
+
+        # Core/iron losses (simplified approximation)
+        # Usually 2-3% of input power for small motors
+        core_loss = input_power * 0.03
+
+        # Mechanical losses (simplified approximation)
+        # Usually 1-2% of input power for small motors
+        mech_loss = input_power * 0.02
+
+        # Total losses
+        total_losses = copper_loss + core_loss + mech_loss
+
+        # Output mechanical power
+        mech_power = input_power - total_losses
+
+        # Efficiency calculation
+        if input_power > 0:
+            return (mech_power / input_power) * 100
         return 0.0
 
     def _calculate_min_turns(
@@ -397,16 +511,16 @@ def create_default_parameters(
         magnet_length=10.0,  # mm
         magnet_thickness=3.0,  # mm
         magnet_br=1.2,  # Tesla (N42 NdFeB)
-        outer_radius=25.0,  # mm
+        outer_radius=50.0,  # mm
         inner_radius=10.0,  # mm
         air_gap=1.0,  # mm
         stator_thickness=15.0,  # mm
         rotor_thickness=5.0,  # mm
         target_diameter=50,  # mm
         torque=0,  # Nm
-        tolerance=0.2,  # ±20%
         target_torque=0.1,  # Nm
         estimated_torque=0.0,
+        tolerance=0.2,  # ±20%
         efficiency=0.0,
         resistance=0.0,
         current=0.0,

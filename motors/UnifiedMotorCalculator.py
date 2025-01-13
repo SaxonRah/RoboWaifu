@@ -27,6 +27,29 @@ class UnifiedMotorCalculator:
         if not is_valid:
             raise ValueError(f"Invalid parameters: {', '.join(errors)}")
 
+    def optimize_magnet_layout(self) -> Dict[str, float]:
+        """New method to optimize magnet layout"""
+        mean_radius = (self.params.outer_radius + self.params.inner_radius) / 2
+
+        # Calculate optimal spacing
+        spacing = self.calculate_magnet_spacing(self.params.poles, mean_radius)
+
+        # Calculate optimal dimensions based on target flux
+        target_flux = 0.8  # Tesla, typical for axial flux motors
+        width, length, thickness = self.calculate_magnet_dimensions(
+            self.params.poles,
+            mean_radius,
+            self.params.magnet_br,
+            target_flux
+        )
+
+        return {
+            "spacing": spacing,
+            "width": width,
+            "length": length,
+            "thickness": thickness
+        }
+
     def calculate_coil_geometry(self, turns: int, wire_diameter: float,
                                 mean_radius: float, num_coils: int) -> tuple[float, float]:
         """
@@ -165,6 +188,9 @@ class UnifiedMotorCalculator:
             self.params.air_gap
         )
 
+        # Optimize magnet layout
+        magnet_layout = self.optimize_magnet_layout()
+
         # Create unified parameters
         params = UnifiedMotorParameters(
             poles=poles,
@@ -194,6 +220,14 @@ class UnifiedMotorCalculator:
             tolerance=self.params.tolerance,
             voltage=self.params.voltage,
         )
+
+        # Update parameters with optimized magnet dimensions
+        params.magnet_width = magnet_layout["width"]
+        params.magnet_length = magnet_layout["length"]
+        params.magnet_thickness = magnet_layout["thickness"]
+
+        # Validate geometry before returning
+        self.validate_geometry(params)
 
         return params
 

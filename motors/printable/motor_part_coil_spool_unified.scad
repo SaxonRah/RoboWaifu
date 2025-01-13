@@ -4,7 +4,7 @@ module spool_body() {
     difference() {
         union() {
             // Center core
-            cylinder(h=12.0, r=3.25, 
+            cylinder(h=10.066666666666666, r=3.25, 
                     center=false, $fn=100);
 
             // Bottom flange only
@@ -13,7 +13,7 @@ module spool_body() {
         }
 
         // Center hole for mounting
-        cylinder(h=13.0, r=1.625, 
+        cylinder(h=11.066666666666666, r=1.625, 
                 center=false, $fn=100);
     }
 }
@@ -34,7 +34,7 @@ module spool_cap() {
 module copper_coil() {
     color("Orange", 0.8) {
         spool_body();
-        translate([0, 0, 12.0])
+        translate([0, 0, 10.066666666666666])
         spool_cap();
     }
 }

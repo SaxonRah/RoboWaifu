@@ -470,75 +470,104 @@ class MotorAnalyzer:
 
     def parse_output(self, text: str) -> List[UnifiedMotorParameters]:
         """Parse the motor calculator output text and extract configurations."""
-        # Regular expression pattern for matching configuration blocks
-        config_pattern = (
-            r"Configuration \d+:\n"
-            r"- Poles: (\d+)\n"
-            r"- Coils: (\d+)\n"
-            r"- Turns per coil: (\d+)\n"
-            r"- Estimated torque: ([\d.]+) Nm\n"
-            r"- Total resistance: ([\d.]+) Ω\n"
-            r"- Operating current: ([\d.]+) A\n"
-            r"- Efficiency: ([\d.]+)%\n"
-            r"- Dimensions: ([\d.]+)mm diameter, ([\d.]+)mm thick"
-        )
+        # More forgiving regex pattern that matches the actual output format
+        config_pattern = r"Configuration \d+:\s*\n" + \
+                         r"- Poles: (\d+)\s*\n" + \
+                         r"- Coils: (\d+)\s*\n" + \
+                         r"- Turns per coil: (\d+)\s*\n" + \
+                         r"- Estimated torque: ([\d.]+) Nm\s*\n" + \
+                         r"- Total resistance: ([\d.]+) Ω\s*\n" + \
+                         r"- Operating current: ([\d.]+) A\s*\n" + \
+                         r"- Efficiency: ([-\d.]+)%\s*\n" + \
+                         r"- Dimensions: ([\d.]+)mm diameter, ([\d.]+)mm thick"
 
-        # Find all matching configurations in the text
-        matches = re.finditer(config_pattern, text)
+        # Extract parameters from header section with error handling
+        try:
+            voltage_match = re.search(r"- Voltage: ([\d.]+) V", text)
+            max_current_match = re.search(r"- Max current: ([\d.]+) A", text)
+            wire_diameter_match = re.search(r"- Wire diameter: ([\d.]+) mm", text)
+            target_torque_match = re.search(r"- Torque range: ([\d.]+) to ([\d.]+) Nm", text)
+
+            voltage = float(voltage_match.group(1)) if voltage_match else 24.0
+            max_current = float(max_current_match.group(1)) if max_current_match else 10.0
+            wire_diameter = float(wire_diameter_match.group(1)) if wire_diameter_match else 0.65
+            target_torque = float(target_torque_match.group(2)) if target_torque_match else 0.1
+
+        except (AttributeError, ValueError) as e:
+            print(f"Warning: Error parsing header parameters: {e}")
+            print("Using default values")
+            voltage = 24.0
+            max_current = 10.0
+            wire_diameter = 0.65
+            target_torque = 0.1
+
+        # Find all configurations
+        matches = list(re.finditer(config_pattern, text, re.MULTILINE))
+
+        if not matches:
+            print("Warning: No configurations found! Debugging information:")
+            print(f"Text length: {len(text)}")
+            print("First 200 characters of text:")
+            print(text[:200])
+            print("\nRegex pattern used:")
+            print(config_pattern)
+            return []
+
+        print(f"Found {len(matches)} configurations")
         self.configs = []
 
-        # Extract default parameters from the header section
-        voltage_match = re.search(r"- Voltage: ([\d.]+) V", text)
-        max_current_match = re.search(r"- Max current: ([\d.]+) A", text)
-        wire_diameter_match = re.search(r"- Wire diameter: ([\d.]+) mm", text)
-
-        voltage = float(voltage_match.group(1)) if voltage_match else 12.0
-        max_current = float(max_current_match.group(1)) if max_current_match else 10.0
-        wire_diameter = float(wire_diameter_match.group(1)) if wire_diameter_match else 0.65
-
         for match in matches:
-            # Extract dimensions
-            diameter = float(match.group(8))
-            thickness = float(match.group(9))
+            try:
+                # Extract dimensions
+                diameter = float(match.group(8))
+                thickness = float(match.group(9))
 
-            # Create UnifiedMotorParameters for each configuration
-            config = UnifiedMotorParameters(
-                poles=int(match.group(1)),
-                coils=int(match.group(2)),
-                turns_per_coil=int(match.group(3)),
-                wire_diameter=wire_diameter,
-                voltage=voltage,
-                max_current=max_current,
-                magnet_type="circle",  # Default value
-                magnet_width=10.0,  # Default value
-                magnet_length=10.0,  # Default value
-                magnet_thickness=3.0,  # Default value
-                magnet_br=1.2,  # Default value for N42 NdFeB
-                outer_radius=diameter / 2,
-                inner_radius=diameter / 2 * 0.3,  # Using typical ratio
-                target_diameter=diameter,
-                torque=0.1,  # Default value
-                air_gap=1.0,  # Default value
-                stator_thickness=thickness,
-                rotor_thickness=5.0,  # Default value
-                tolerance=0.2,  # Default value
-                target_torque=0.1,  # Will be overwritten by actual torque
-                estimated_torque=float(match.group(4)),
-                efficiency=float(match.group(7)),
-                resistance=float(match.group(5)),
-                current=float(match.group(6))
-            )
-            self.configs.append(config)
+                # Create configuration with extracted parameters
+                config = UnifiedMotorParameters(
+                    poles=int(match.group(1)),
+                    coils=int(match.group(2)),
+                    turns_per_coil=int(match.group(3)),
+                    wire_diameter=wire_diameter,
+                    voltage=voltage,
+                    max_current=max_current,
+                    magnet_type="circle",  # Default value
+                    magnet_width=10.0,  # Default value
+                    magnet_length=10.0,  # Default value
+                    magnet_thickness=3.0,  # Default value
+                    magnet_br=1.2,  # Default value for N42 NdFeB
+                    outer_radius=diameter / 2,
+                    inner_radius=(diameter / 2) * 0.3,  # Using typical ratio
+                    target_diameter=diameter,
+                    air_gap=1.0,  # Default value
+                    stator_thickness=thickness,
+                    rotor_thickness=5.0,  # Default value
+                    torque=target_torque,
+                    tolerance=0.2,  # Default value
+                    target_torque=target_torque,
+                    estimated_torque=float(match.group(4)),
+                    efficiency=float(match.group(7)),
+                    resistance=float(match.group(5)),
+                    current=float(match.group(6))
+                )
+                self.configs.append(config)
 
-        if not self.configs:
-            print("Warning: No configurations found in the output text!")
-            print("Text content preview:", text[:200])  # Print first 200 chars for debugging
+            except (ValueError, IndexError) as e:
+                print(f"Warning: Error parsing configuration: {e}")
+                print(f"Problematic match: {match.groups()}")
+                continue
 
         return self.configs
 
     def save_report(self, output_text: str):
         """Parse the output and save the HTML report."""
+        print("Parsing configurations...")
         self.parse_output(output_text)
+
+        if not self.configs:
+            print("Error: No valid configurations found to generate report")
+            return
+
+        print(f"Generating HTML report with {len(self.configs)} configurations...")
         html = self.generate_html()
 
         with open(self.output_file, 'w', encoding='utf-8') as f:

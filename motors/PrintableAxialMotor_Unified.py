@@ -2,12 +2,21 @@ import math
 from pathlib import Path
 from typing import Dict, Any
 from UnifiedMotorParameters import UnifiedMotorParameters
+from UnifiedMotorCalculator import UnifiedMotorCalculator, create_default_parameters
 
 
 class PrintableMotorPartsGenerator:
     def __init__(self, params: UnifiedMotorParameters, print_settings: Dict[str, Any] = None):
         """Initialize the generator with unified parameters and print settings."""
         self.params = params
+        self.calculator = UnifiedMotorCalculator(params)
+
+        # Validate geometry before proceeding
+        try:
+            self.calculator.validate_geometry(params)
+        except ValueError as e:
+            print(f"Warning: Geometry validation failed: {e}")
+            print("Proceeding with generation, but parts may not be optimal")
 
         # Default 3D printing parameters
         self.print_settings = {
@@ -238,10 +247,10 @@ housing();"""
 
         assembly = f"""
 // Import individual components
-use <motor_part_coil_spool.scad>
-use <motor_part_housing.scad>
-use <motor_part_rotor.scad>
-use <motor_part_stator.scad>
+use <motor_part_coil_spool_unified.scad>
+use <motor_part_housing_unified.scad>
+use <motor_part_rotor_unified.scad>
+use <motor_part_stator_unified.scad>
 
 // Full Motor Assembly
 module assembly() {{
@@ -405,40 +414,22 @@ def generate_printable_parts(params: UnifiedMotorParameters,
 
 def create_sample_motor() -> None:
     """Create example motor parts using default parameters."""
-    from UnifiedMotorParameters import UnifiedMotorParameters
+    params = create_default_parameters()
 
-    # Create sample parameters
-    params = UnifiedMotorParameters(
-        poles=12,
-        coils=18,
-        turns_per_coil=100,
-        wire_diameter=0.65,
-        voltage=12.0,
-        max_current=10.0,
-        magnet_type="circle",
-        magnet_width=10.0,
-        magnet_length=10.0,
-        magnet_thickness=3.0,
-        magnet_br=1.2,
-        outer_radius=35.0,
-        inner_radius=15.0,
-        air_gap=1.0,
-        stator_thickness=10.0,
-        rotor_thickness=5.0,
-        target_diameter=50,
-        torque=0.1,
-        tolerance=0.2,
-        target_torque=0.1,
-        estimated_torque=None,
-        efficiency=0.0,
-        resistance=0.0,
-        current=0.0,
-        coil_width=8.0,
-        coil_height=15.0,
-        total_height=None
-    )
+    # Create calculator instance
+    calculator = UnifiedMotorCalculator(params)
 
-    # Print settings
+    # Optimize magnet layout
+    magnet_layout = calculator.optimize_magnet_layout()
+    print("\nOptimized Magnet Layout:")
+    print(f"Spacing: {magnet_layout['spacing']:.2f} mm")
+    print(
+        f"Dimensions: {magnet_layout['width']:.1f} x {magnet_layout['length']:.1f} x {magnet_layout['thickness']:.1f} mm")
+
+    # Update parameters with optimized values
+    params = calculator.generate_unified_parameters()
+
+    # Generate printable parts with validated geometry
     print_settings = {
         'wall_thickness': 2.0,
         'tolerance': 0.2,
@@ -449,8 +440,10 @@ def create_sample_motor() -> None:
     }
 
     # Generate parts
-    generate_printable_parts(params, print_settings=print_settings)
-    print("Sample motor parts generated successfully!")
+    parts = generate_printable_parts(params, print_settings=print_settings)
+    print("\nGenerated parts with optimized geometry:")
+    for name in parts.keys():
+        print(f"- {name}")
 
 
 if __name__ == "__main__":

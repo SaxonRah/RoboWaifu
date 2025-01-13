@@ -1,9 +1,9 @@
 
 // Import individual components
-use <motor_part_coil_spool.scad>
-use <motor_part_housing.scad>
-use <motor_part_rotor.scad>
-use <motor_part_stator.scad>
+use <motor_part_coil_spool_unified.scad>
+use <motor_part_housing_unified.scad>
+use <motor_part_rotor_unified.scad>
+use <motor_part_stator_unified.scad>
 
 // Full Motor Assembly
 module assembly() {
