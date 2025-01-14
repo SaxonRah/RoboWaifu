@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from typing import Dict
 from MotorParameters import MotorParameters
 from AxialMotorCalculator import AxialMotorCalculator
 
