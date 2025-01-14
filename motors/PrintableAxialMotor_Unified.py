@@ -228,8 +228,17 @@ module housing() {{
 
 housing();"""
 
-    def generate_assembly(self) -> str:
+    def generate_assembly(
+            self,
+            output_prefix: str = "",
+            output_location: str = "",
+            components=None) -> str:
         """Generate OpenSCAD code for the complete motor assembly."""
+        if components is None:
+            components = dict(spool_component=f"<{output_prefix}_coil_spool.scad>",
+                              housing_component=f"<{output_prefix}_housing.scad>",
+                              rotor_component=f"<{output_prefix}_rotor.scad>",
+                              stator_component=f"<{output_prefix}_stator.scad>")
         p = self._to_printable_params()
 
         # Calculate assembly dimensions
@@ -244,13 +253,21 @@ housing();"""
         # else:
         #     coil_placement = self._generate_radial_coil_placement(
         #         p['c'], mean_radius, base_height)
+        else:
+            coil_placement = self._generate_axial_coil_placement(
+                p['c'], mean_radius, base_height)
+
+        spool_component = components['spool_component']
+        housing_component = components['housing_component']
+        rotor_component = components['rotor_component']
+        stator_component = components['stator_component']
 
         assembly = f"""
 // Import individual components
-use <motor_part_coil_spool_unified.scad>
-use <motor_part_housing_unified.scad>
-use <motor_part_rotor_unified.scad>
-use <motor_part_stator_unified.scad>
+use {spool_component}
+use {housing_component}
+use {rotor_component}
+use {stator_component}
 
 // Full Motor Assembly
 module assembly() {{
@@ -374,7 +391,8 @@ $vpd = 400;"""
 
 
 def generate_printable_parts(params: UnifiedMotorParameters,
-                             output_prefix: str = "motor_part",
+                             output_prefix: str = "motor",
+                             output_location: str = "printable",
                              print_settings: Dict[str, Any] = None) -> Dict[str, str]:
     """Generate all printable parts and save to separate files.
 
@@ -385,6 +403,10 @@ def generate_printable_parts(params: UnifiedMotorParameters,
 
     Returns:
         Dictionary containing OpenSCAD code for each part
+        :param params: Unified Motor Parameters (UnifiedMotorParameters)
+        :param output_prefix: Prefix part with text.
+        :param output_location: Directory to save in.
+        :param print_settings: 3D Printing settings.
     """
     # Create generator instance
     generator = PrintableMotorPartsGenerator(params, print_settings)
@@ -395,15 +417,15 @@ def generate_printable_parts(params: UnifiedMotorParameters,
         "stator": generator.generate_stator_plate(),
         "rotor": generator.generate_rotor_plate(),
         "housing": generator.generate_housing(),
-        "assembly": generator.generate_assembly()
+        "assembly": generator.generate_assembly(output_prefix=output_prefix, output_location=output_location)
     }
 
     # Create output directory
-    Path("./printable").mkdir(parents=True, exist_ok=True)
+    Path(f"./{output_location}").mkdir(parents=True, exist_ok=True)
 
     # Save each part to a separate file
     for name, scad_code in parts.items():
-        filename = f"./printable/{output_prefix}_{name}_unified.scad"
+        filename = f"./{output_location}/{output_prefix}_{name}.scad"
         with open(filename, 'w') as f:
             f.write(scad_code)
 
