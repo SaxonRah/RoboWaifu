@@ -2,13 +2,13 @@ from pathlib import Path
 import sys
 from typing import List
 
-from AxialMotorCalculator_Unified import AxialMotorCalculator, write_motor_output
-from MotorAnalyzer_Unified import MotorAnalyzer
-from PrintableAxialMotor_Unified import generate_printable_parts
-from MotorParameters_Unified import UnifiedMotorParameters
+from AxialMotorCalculator import AxialMotorCalculator
+from MotorAnalyzer import MotorAnalyzer
+from GeneratePrintableMotor import generate_printable_parts
+from MotorParameters import MotorParameters
 
 
-def validate_printable_parameters(params: UnifiedMotorParameters) -> bool:
+def validate_printable_parameters(params: MotorParameters) -> bool:
     """Validate parameters required for generating printable parts."""
     required_params = [
         ('outer_radius', params.outer_radius),
@@ -34,9 +34,9 @@ def validate_printable_parameters(params: UnifiedMotorParameters) -> bool:
     return True
 
 
-def create_base_parameters(target_torque: float = 0.1) -> UnifiedMotorParameters:
+def create_base_parameters(target_torque: float = 0.1) -> MotorParameters:
     """Create default parameters with specified target torque."""
-    return UnifiedMotorParameters(
+    return MotorParameters(
         poles=4,  # Will be varied in calculations
         coils=6,  # Will be varied in calculations
         turns_per_coil=100,  # Will be varied in calculations
@@ -67,9 +67,9 @@ def create_base_parameters(target_torque: float = 0.1) -> UnifiedMotorParameters
     )
 
 
-def find_optimal_configuration(configs: List[UnifiedMotorParameters],
+def find_optimal_configuration(configs: List[MotorParameters],
                                target_torque: float,
-                               tolerance: float = 0.2) -> UnifiedMotorParameters:
+                               tolerance: float = 0.2) -> MotorParameters:
     """
     Find the optimal configuration based on efficiency and target torque.
 
@@ -124,7 +124,7 @@ def generate_motor(target_torque: float = 0.1,
 
     # Generate configurations
     config_output_file = output_path / "motor_configurations.txt"
-    write_motor_output(config_output_file.as_posix(), calculator)
+    calculator.write_motor_output(config_output_file.as_posix())
 
     report_output_file = output_path / "motor_analysis.html"
 

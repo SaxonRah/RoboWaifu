@@ -1,14 +1,14 @@
 from pathlib import Path
 from typing import Dict, Any
-from MotorParameters_Unified import UnifiedMotorParameters
-from MotorCalculator_Unified import UnifiedMotorCalculator, create_default_parameters
+from MotorParameters import MotorParameters, create_default_parameters
+from AxialMotorCalculator import AxialMotorCalculator
 
 
 class PrintableMotorPartsGenerator:
-    def __init__(self, params: UnifiedMotorParameters, print_settings: Dict[str, Any] = None):
-        """Initialize the generator with unified parameters and print settings."""
+    def __init__(self, params: MotorParameters, print_settings: Dict[str, Any] = None):
+        """Initialize the generator with parameters and print settings."""
         self.params = params
-        self.calculator = UnifiedMotorCalculator(params)
+        self.calculator = AxialMotorCalculator(params)
 
         # Validate geometry before proceeding
         try:
@@ -389,7 +389,7 @@ $vpd = 400;"""
         return "\n".join(placements)
 
 
-def generate_printable_parts(params: UnifiedMotorParameters,
+def generate_printable_parts(params: MotorParameters,
                              output_prefix: str = "motor",
                              output_location: str = "printable",
                              print_settings: Dict[str, Any] = None) -> Dict[str, str]:
@@ -438,7 +438,7 @@ def create_sample_motor() -> None:
     params = create_default_parameters()
 
     # Create calculator instance
-    calculator = UnifiedMotorCalculator(params)
+    calculator = AxialMotorCalculator(params)
 
     # Optimize magnet layout
     magnet_layout = calculator.optimize_magnet_layout()
@@ -449,7 +449,7 @@ def create_sample_motor() -> None:
           f"x {magnet_layout['thickness']:.1f} mm")
 
     # Update parameters with optimized values
-    params = calculator.generate_unified_parameters()
+    params = calculator.generate_parameters()
 
     # Generate printable parts with validated geometry
     print_settings = {

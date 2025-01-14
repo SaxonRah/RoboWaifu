@@ -2,13 +2,13 @@ import re
 import json
 import datetime
 from typing import List, Dict, Any
-from MotorParameters_Unified import UnifiedMotorParameters
+from MotorParameters import MotorParameters
 
 
 class MotorAnalyzer:
     def __init__(self, output_file: str):
         self.output_file = output_file
-        self.configs: List[UnifiedMotorParameters] = []
+        self.configs: List[MotorParameters] = []
 
     @staticmethod
     def _generate_head() -> str:
@@ -50,10 +50,10 @@ class MotorAnalyzer:
 </div>"""
 
     @staticmethod
-    def _generate_stat_cards(best_efficiency: UnifiedMotorParameters,
-                             best_torque: UnifiedMotorParameters,
-                             simplest: UnifiedMotorParameters,
-                             most_compact: UnifiedMotorParameters) -> str:
+    def _generate_stat_cards(best_efficiency: MotorParameters,
+                             best_torque: MotorParameters,
+                             simplest: MotorParameters,
+                             most_compact: MotorParameters) -> str:
         """Generate the statistics cards section."""
         return f"""
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -468,7 +468,7 @@ class MotorAnalyzer:
 
         return "\n".join(html_parts)
 
-    def parse_output(self, text: str) -> List[UnifiedMotorParameters]:
+    def parse_output(self, text: str) -> List[MotorParameters]:
         """Parse the motor calculator output text and extract configurations."""
         # More forgiving regex pattern that matches the actual output format
         config_pattern = r"Configuration \d+:\s*\n" + \
@@ -523,7 +523,7 @@ class MotorAnalyzer:
                 thickness = float(match.group(9))
 
                 # Create configuration with extracted parameters
-                config = UnifiedMotorParameters(
+                config = MotorParameters(
                     poles=int(match.group(1)),
                     coils=int(match.group(2)),
                     turns_per_coil=int(match.group(3)),
@@ -576,8 +576,8 @@ class MotorAnalyzer:
         print(f"Report saved to {self.output_file}")
 
 
-def analyze_motor(motor_output: str = 'motor_output_unified.txt',
-                  motor_analysis: str = 'motor_analysis_unified.html'):
+def analyze_motor(motor_output: str = 'motor_output.txt',
+                  motor_analysis: str = 'motor_analysis.html'):
     """Analyze motor configurations and generate HTML report."""
     with open(motor_output, 'r') as f:
         motor_output_text = f.read()

@@ -3,7 +3,7 @@ from typing import Tuple, List, Optional
 
 
 @dataclass
-class UnifiedMotorParameters:
+class MotorParameters:
     # Electrical Parameters
     poles: int
     coils: int
@@ -77,3 +77,36 @@ class UnifiedMotorParameters:
             errors.append("Number of coils must be positive")
 
         return len(errors) == 0, errors
+
+
+def create_default_parameters() -> MotorParameters:
+    """Create default parameters for testing"""
+    return MotorParameters(
+        poles=4,  # Will be varied in calculations
+        coils=6,  # Will be varied in calculations
+        turns_per_coil=100,  # Will be varied in calculations
+        wire_diameter=0.65,  # mm
+        voltage=12.0,  # V
+        max_current=10.0,  # A
+        magnet_type="circle",
+        magnet_width=10.0,  # mm
+        magnet_length=10.0,  # mm
+        magnet_thickness=3.0,  # mm
+        magnet_br=1.2,  # Tesla (N42 NdFeB)
+        outer_radius=50.0,  # mm
+        inner_radius=10.0,  # mm
+        air_gap=1.0,  # mm
+        stator_thickness=15.0,  # mm
+        rotor_thickness=5.0,  # mm
+        target_diameter=50,  # mm
+        torque=0,  # Nm
+        target_torque=0.1,  # Nm
+        estimated_torque=0.0,
+        tolerance=0.2,  # ±20%
+        efficiency=0.0,
+        resistance=0.0,
+        current=0.0,
+        coil_width=None,
+        coil_height=None,
+        total_height=None
+    )
