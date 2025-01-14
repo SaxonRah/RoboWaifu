@@ -1,8 +1,7 @@
-import math
 from pathlib import Path
 from typing import Dict, Any
-from UnifiedMotorParameters import UnifiedMotorParameters
-from UnifiedMotorCalculator import UnifiedMotorCalculator, create_default_parameters
+from MotorParameters_Unified import UnifiedMotorParameters
+from MotorCalculator_Unified import UnifiedMotorCalculator, create_default_parameters
 
 
 class PrintableMotorPartsGenerator:
@@ -231,7 +230,6 @@ housing();"""
     def generate_assembly(
             self,
             output_prefix: str = "",
-            output_location: str = "",
             components=None) -> str:
         """Generate OpenSCAD code for the complete motor assembly."""
         if components is None:
@@ -373,7 +371,8 @@ $vpd = 400;"""
 
         return "\n".join(points)
 
-    def _generate_axial_coil_placement(self, num_coils: int, mean_radius: float,
+    @staticmethod
+    def _generate_axial_coil_placement(num_coils: int, mean_radius: float,
                                        base_height: float) -> str:
         """Generate OpenSCAD code for axial coil placement."""
         placements = []
@@ -417,7 +416,7 @@ def generate_printable_parts(params: UnifiedMotorParameters,
         "stator": generator.generate_stator_plate(),
         "rotor": generator.generate_rotor_plate(),
         "housing": generator.generate_housing(),
-        "assembly": generator.generate_assembly(output_prefix=output_prefix, output_location=output_location)
+        "assembly": generator.generate_assembly(output_prefix=output_prefix)
     }
 
     # Create output directory
@@ -445,8 +444,9 @@ def create_sample_motor() -> None:
     magnet_layout = calculator.optimize_magnet_layout()
     print("\nOptimized Magnet Layout:")
     print(f"Spacing: {magnet_layout['spacing']:.2f} mm")
-    print(
-        f"Dimensions: {magnet_layout['width']:.1f} x {magnet_layout['length']:.1f} x {magnet_layout['thickness']:.1f} mm")
+    print(f"Dimensions: {magnet_layout['width']:.1f} "
+          f"x {magnet_layout['length']:.1f} "
+          f"x {magnet_layout['thickness']:.1f} mm")
 
     # Update parameters with optimized values
     params = calculator.generate_unified_parameters()

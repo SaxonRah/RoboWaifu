@@ -2,7 +2,7 @@ import re
 import json
 import datetime
 from typing import List, Dict, Any
-from UnifiedMotorParameters import UnifiedMotorParameters
+from MotorParameters_Unified import UnifiedMotorParameters
 
 
 class MotorAnalyzer:

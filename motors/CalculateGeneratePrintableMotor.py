@@ -5,7 +5,7 @@ from typing import List
 from AxialMotorCalculator_Unified import AxialMotorCalculator, write_motor_output
 from MotorAnalyzer_Unified import MotorAnalyzer
 from PrintableAxialMotor_Unified import generate_printable_parts
-from UnifiedMotorParameters import UnifiedMotorParameters
+from MotorParameters_Unified import UnifiedMotorParameters
 
 
 def validate_printable_parameters(params: UnifiedMotorParameters) -> bool:
@@ -235,5 +235,3 @@ if __name__ == "__main__":
     # except Exception as e:
     #     print(f"Error: {e}")
     #     sys.exit(1)
-
-

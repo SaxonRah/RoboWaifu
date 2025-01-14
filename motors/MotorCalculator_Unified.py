@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import math
 
-from UnifiedMotorParameters import UnifiedMotorParameters
+from MotorParameters_Unified import UnifiedMotorParameters
 
 
 class UnifiedMotorCalculator:

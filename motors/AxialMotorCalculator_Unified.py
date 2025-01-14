@@ -1,9 +1,8 @@
 import math
 from typing import List
 
-from MotorAnalyzer import MotorAnalyzer
-from UnifiedMotorParameters import UnifiedMotorParameters
-from motors.UnifiedMotorCalculator import UnifiedMotorCalculator
+from MotorAnalyzer_Unified import MotorAnalyzer
+from MotorParameters_Unified import UnifiedMotorParameters
 
 
 class AxialMotorCalculator:
@@ -273,7 +272,7 @@ class AxialMotorCalculator:
         return 0.0
 
     def calculate_efficiency_ignoresotherlosses(
-    # def calculate_efficiency(
+        # def calculate_efficiency(
             self,
             current: float,
             resistance: float) -> float:
