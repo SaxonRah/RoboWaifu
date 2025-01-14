@@ -933,6 +933,88 @@ class AxialMotorCalculator:
         analyzer = MotorAnalyzer('motor_analysis.html')
         analyzer.save_report(output_text)
 
+    def analyze_motor_design(self):
+        print("")
+        print("=============================Complete Motor Analysis Report=============================")
+        # Calculate coil parameters
+        coil_params = self.calculate_coil_parameters()
+        print("Coil Parameters:")
+        print(f"Width: {coil_params['coil_width']:.2f} mm")
+        print(f"Height: {coil_params['coil_height']:.2f} mm")
+        print(f"Wire Length: {coil_params['wire_length']:.2f} mm")
+        print(f"Resistance: {coil_params['resistance']:.3f} Ω")
+        print(f"Turns per Layer: {coil_params['turns_per_layer']}")
+        print(f"Number of Layers: {coil_params['num_layers']}")
+
+        print("=============================")
+
+        # Calculate magnetic circuit
+        magnetic_params = self.calculate_magnetic_circuit()
+        print("\nMagnetic Circuit Analysis:")
+        print(f"Flux: {magnetic_params['flux']:.2e} Wb")
+        print(f"Flux Density: {magnetic_params['flux_density']:.2f} T")
+        print(f"MMF: {magnetic_params['mmf']:.2f} A-turns")
+        print(f"Total Reluctance: {magnetic_params['reluctance_total']:.2e} H^-1")
+        print(f"Magnet Area: {magnetic_params['magnet_area']:.2e} m²")
+
+        print("=============================")
+
+        # Calculate performance
+        performance = self.calculate_performance()
+        print("\nPerformance Analysis:")
+        print(f"Torque: {performance['torque']:.3f} Nm")
+        print(f"Input Power: {performance['input_power']:.2f} W")
+        print(f"Output Power: {performance['output_power']:.2f} W")
+        print(f"Copper Loss: {performance['copper_loss']:.2f} W")
+        print(f"Iron Loss: {performance['iron_loss']:.2f} W")
+        print(f"Total Loss: {performance['total_loss']:.2f} W")
+        print(f"Efficiency: {performance['efficiency']:.1f}%")
+
+        print("=============================")
+
+        # Optimize geometry
+        optimized_params = self.optimize_geometry()
+        print("\nOptimized Geometry:")
+        print(f"Inner Radius: {optimized_params.inner_radius:.2f} mm")
+        print(f"Outer Radius: {optimized_params.outer_radius:.2f} mm")
+        print(f"Stator Thickness: {optimized_params.stator_thickness:.2f} mm")
+
+        print("=============================")
+
+        # Generate design report
+        report = self.generate_design_report()
+        print("\nComplete Design Report:")
+        print("\nMagnetic Circuit Parameters:")
+        for key, value in report['magnetic_circuit'].items():
+            print(f"  {key}: {value:.3e}" if isinstance(value, float) else f"  {key}: {value}")
+        print("\nCoil Parameters:")
+        for key, value in report['coil_parameters'].items():
+            print(f"  {key}: {value:.3f}" if isinstance(value, float) else f"  {key}: {value}")
+        print("\nPerformance Metrics:")
+        for key, value in report['performance'].items():
+            print(f"  {key}: {value:.3f}" if isinstance(value, float) else f"  {key}: {value}")
+        print("\nGeometry:")
+        for key, value in report['geometry'].items():
+            print(f"  {key}: {value:.2f} mm")
+        print("\nConfiguration:")
+        for key, value in report['configuration'].items():
+            print(f"  {key}: {value}")
+
+        print("=============================")
+        # Calculate mechanical dimensions
+        rotor_thickness = self.calculate_rotor_thickness(optimized_params.magnet_thickness)
+        total_height = self.calculate_total_height(
+            optimized_params.stator_thickness,
+            rotor_thickness,
+            optimized_params.magnet_thickness,
+            optimized_params.air_gap
+        )
+        print("\nMechanical Dimensions:")
+        print(f"Rotor Thickness: {rotor_thickness:.2f} mm")
+        print(f"Total Motor Height: {total_height:.2f} mm")
+        print("=============================Complete Motor Analysis Report=============================")
+        print("")
+
 
 if __name__ == "__main__":
     # Create default parameters
@@ -944,3 +1026,5 @@ if __name__ == "__main__":
     # Write the motor outputs.
     calculator.write_motor_output(filename)
     print(f"Motor analysis completed and saved to {filename}")
+
+    calculator.analyze_motor_design()
