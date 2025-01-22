@@ -11,19 +11,15 @@ from freewill_multilayered import ValueSystem, Value, ValueCategory, TimeFrame
 from freewill_random import DecisionMaker, DecisionType
 from freewill_reinforcement import MetaCognitionSystem
 
-"""
-Faults or Issues:
-1. The decide_action method sometimes defaults to random action generation,
-    even when deterministic options are available. This can lead to unnecessary exploration.
-2. The _check_stuck_behavior logic might miss edge cases where the agent oscillates
-    between two states instead of being "stuck" in one.
-3. The reset method does not explicitly reinitialize self.hypothesis_results or self.ethical_decisions,
-    which could cause errors if reused across episodes without reset.
-4. No handling for edge cases where len(self.performance_history) < recent_window in _update_emergent_properties.
 
-Features Mentioned but Not Fully Implemented:
-    1. While the comments mention that ethical dilemmas should influence decisions dynamically,
-        the influence of ethical resolutions in decision-making seems marginal and more demonstrative than impactful.
+"""
+freewill_environmental handles the agent's environment and state interactions.
+freewill_ethical resolves dilemmas dynamically.
+freewill_goals evolves goals based on environmental feedback.
+freewill_hypothesis generates and tests hypotheses for exploration.
+freewill_multilayered prioritizes values dynamically.
+freewill_random introduces randomness and hybrid decision-making.
+freewill_reinforcement provides meta-cognition and self-reflection for improvement.
 """
 
 

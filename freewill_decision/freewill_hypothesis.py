@@ -9,35 +9,6 @@ Exploration and Innovation
     1. Give the system the ability to generate and test hypotheses about its environment and itself.
     2. Introduce novelty-seeking behavior where the system occasionally chooses
         actions not strictly optimal or expected, fostering exploration.
-------------------------------------------------------------------------------------------------------------------------
-Faults or Issues:
-    1. The generate_hypothesis method does not consider novelty or
-        penalty for hypotheses repeatedly disproven, potentially wasting resources.
-    2. Hypothesis predictions rely heavily on mean outcomes,
-        which might not capture non-linear or rare causal effects.
-    
-Features Mentioned but Not Fully Implemented:
-    1. The system mentions causal chain hypothesis testing
-        but doesn't validate chains against external environmental dynamics.
-"""
-
-"""
-Updates include:
-
-Improved hypothesis disproval tracking:
-    Added a disproven_count attribute to track hypotheses that consistently fail.
-Enhanced pattern observation:
-    Updated the pattern observation method to include weighted updates for causal links.
-Dynamic causal chain prediction: 
-    Improved prediction by normalizing weights and incorporating more accurate chain evaluations.
-Implemented Features:
-Dynamic confidence adjustments:
-    Hypothesis confidence is now dynamically updated based on disapproval counts and prediction accuracy.
-Causal chain validation:
-    Introduced checks to validate causal chains against dynamic environmental feedback.
-Action selection refinement:
-    Actions are selected by combining Q-values with novelty bonuses and
-        hypothesis confidence for more informed exploration.
 """
 
 
@@ -51,6 +22,7 @@ class Hypothesis:
     state: Any = None
     metadata: Dict = None
     disproven_count: int = 0  # Tracks how often the hypothesis was disproven
+
 
 class EnhancedHypothesisGenerator:
     def __init__(self):
@@ -75,7 +47,7 @@ class EnhancedHypothesisGenerator:
             effect = state_sequence[i + 1]
             current_strength = self.causal_links[cause][effect]
             self.causal_links[cause][effect] = (
-                current_strength * 0.9 + outcome * 0.1
+                    current_strength * 0.9 + outcome * 0.1
             )
 
     def _follow_causal_chain(self, start_state: Any, depth: int) -> List[Dict]:
@@ -259,7 +231,7 @@ class ExploratoryAgent:
 
         novelty_bonus = self.calculate_novelty_bonus(state, action)
         new_q = current_q + self.learning_rate * (
-            reward + novelty_bonus + (self.decay_rate * next_max_q) - current_q
+                reward + novelty_bonus + (self.decay_rate * next_max_q) - current_q
         )
 
         self.q_values[state][action] = new_q

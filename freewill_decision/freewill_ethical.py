@@ -10,37 +10,6 @@ Moral Dilemmas and Ethical Reasoning
     1. Introduce ethical frameworks (e.g., utilitarianism, deontology) to guide decisions.
     2. Build-in mechanisms for resolving conflicts between these frameworks dynamically, 
         emphasizing the system's ability to make "hard choices."
-------------------------------------------------------------------------------------------------------------------------
-Faults or Issues:
-    1. The resolve_dilemma method heavily favors utilitarianism in emergencies,
-        but there’s no dynamic adjustment of framework weights based on past dilemmas.
-    2. Continuous action handling (discretize_actions) is incomplete,
-        as it doesn't dynamically adjust discretization levels based on dilemma complexity.
-    
-Features Mentioned but Not Fully Implemented:
-    1. Dynamic conflict resolution mechanisms between frameworks are briefly mentioned but not significantly developed.
-"""
-
-"""
-Updates include:
-
-Dynamic Framework Weight Normalization:
-    The framework weights are now normalized dynamically to ensure consistency and adaptability.
-
-Conflict Resolution Enhancements:
-    Emergency contexts dynamically favor Utilitarianism as intended, without hard-coding the bias.
-
-Weight Adaptation:
-    The system dynamically adjusts framework weights based on performance outcomes.
-
-Dynamic Conflict Resolution:
-    Weights for ethical frameworks now adapt based on past performance, as described in the comments.
-
-Continuous Action Handling:
-    Frameworks now explicitly support evaluating and incorporating continuous actions.
-
-Dynamic Feedback Loops:
-    Introduced a mechanism to adjust framework importance based on dilemmas resolved over time.
 """
 
 

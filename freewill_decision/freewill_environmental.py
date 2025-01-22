@@ -7,40 +7,6 @@ Environmental Interaction
     1. Link decision-making to sensory input and allow the system to "experience" its environment.
     2. Incorporate feedback loops where the system's actions affect the environment
         and vice versa, encouraging adaptive responses.
-------------------------------------------------------------------------------------------------------------------------
-Faults or Issues:
-    1. In update, if an agent encounters a boundary, the penalty for hitting the boundary
-        is static (-0.5), which doesn't scale with the severity of the action.
-    2. The get_sensor_data method assumes a fixed radius for observations,
-        making it less adaptable for larger or dynamic environments.
-    3. Resource and threat placement is random without enforcing a minimum distance between them,
-        which might lead to clumping and less meaningful interactions.
-        
-Features Mentioned but Not Fully Implemented:
-    1. Feedback loops between agent actions and environmental adaptations are mentioned
-        but seem limited to reward feedback without environmental evolution.
-"""
-
-"""
-Updates include:
-
-Boundary Penalty Scaling:
-    Added scaling penalties proportional to the step count.
-
-Dynamic Sensor Radius:
-    Sensor radius now adjusts dynamically to the environment size.
-
-Resource/Threat Placement Constraints:
-    Enforced minimum spacing between resources and threats during placement.
-
-Environment Adaptation:
-    Added periodic updates to introduce new resources/threats.
-
-Dynamic Feedback Loops:
-    Environment adapts dynamically based on the agent's actions every 50 steps.
-
-Action Efficiency Penalty:
-    Added a time-dependent penalty to encourage efficient actions.
 """
 
 

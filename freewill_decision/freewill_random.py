@@ -8,29 +8,6 @@ Introduce Degrees of Randomness and Determinism
     2. Combine randomness with rule-based systems to add a layer of structured unpredictability.
     3. Decision-making could weigh deterministic processes against stochastic ones,
         using thresholds or probability distributions to favor one over the other.
-------------------------------------------------------------------------------------------------------------------------
-Faults or Issues:
-    1. The _deterministic_decision method normalizes inputs without differentiating between positive
-        and negative influences, which could misrepresent decisions.
-    2. Hybrid decisions combine random and deterministic scores but do not weigh recent feedback or experience.
-
-Features Mentioned but Not Fully Implemented:
-    1. The mention of "quantum randomness" isn’t represented in the implementation, which is purely pseudo-random.
-"""
-
-"""
-Fixes:
-    Deterministic Decision:
-        Added support for positive and negative influence in inputs, ensuring more nuanced decisions.
-    Hybrid Decision:
-        Improved combination of deterministic and random decisions for better balance.
-    Normalization:
-        Adjusted all calculations to prevent misrepresentation of extreme or negative values.
-Added Features:
-    Quantum Random Decision:
-        Simulated quantum randomness using advanced random functions from NumPy.
-    Quantum Decision-Making:
-        Combined deterministic logic with quantum randomness for an innovative decision-making approach.
 """
 
 
