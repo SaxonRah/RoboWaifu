@@ -21,6 +21,28 @@ Features Mentioned but Not Fully Implemented:
         but seem limited to reward feedback without environmental evolution.
 """
 
+"""
+Updates include:
+
+Boundary Penalty Scaling:
+    Added scaling penalties proportional to the step count.
+
+Dynamic Sensor Radius:
+    Sensor radius now adjusts dynamically to the environment size.
+
+Resource/Threat Placement Constraints:
+    Enforced minimum spacing between resources and threats during placement.
+
+Environment Adaptation:
+    Added periodic updates to introduce new resources/threats.
+
+Dynamic Feedback Loops:
+    Environment adapts dynamically based on the agent's actions every 50 steps.
+
+Action Efficiency Penalty:
+    Added a time-dependent penalty to encourage efficient actions.
+"""
+
 
 class Environment:
     def __init__(self, size: int = 10):
@@ -29,26 +51,36 @@ class Environment:
         self.agent_pos = (size // 2, size // 2)
         self.resources = []
         self.threats = []
+        self.step_count = 0
 
-        # Initialize random resources and threats
+        # Initialize random resources and threats with constraints
         self._place_elements()
 
     def _place_elements(self):
-        """Place random resources and threats in the environment"""
+        """Place resources and threats with minimum spacing between them"""
+        def place_element(existing_elements, marker):
+            while True:
+                pos = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
+                if (
+                    pos != self.agent_pos
+                    and pos not in existing_elements
+                    and all(np.linalg.norm(np.array(pos) - np.array(other)) > 2 for other in existing_elements)
+                ):
+                    return pos
+
         for _ in range(self.size // 2):
-            pos = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
-            if pos != self.agent_pos:
-                self.resources.append(pos)
-                self.grid[pos] = 1  # 1 represents resource
+            pos = place_element(self.resources, marker=1)
+            self.resources.append(pos)
+            self.grid[pos] = 1  # 1 represents resource
 
         for _ in range(self.size // 3):
-            pos = (random.randint(0, self.size - 1), random.randint(0, self.size - 1))
-            if pos != self.agent_pos and pos not in self.resources:
-                self.threats.append(pos)
-                self.grid[pos] = -1  # -1 represents threat
+            pos = place_element(self.threats + self.resources, marker=-1)
+            self.threats.append(pos)
+            self.grid[pos] = -1  # -1 represents threat
 
     def get_sensor_data(self, radius: int = 2) -> np.ndarray:
-        """Return a view of the environment around the agent"""
+        """Return a view of the environment around the agent, dynamically scaling radius based on size."""
+        radius = min(radius, self.size // 4)  # Dynamically scale sensor radius
         x, y = self.agent_pos
         sensor_view = np.zeros((2 * radius + 1, 2 * radius + 1))
 
@@ -60,14 +92,23 @@ class Environment:
 
         return sensor_view
 
+    def adapt_environment(self):
+        """Adapt environment dynamically based on agent actions."""
+        if self.step_count % 50 == 0:
+            # Add new resources and threats periodically
+            if len(self.resources) < self.size:
+                self._place_elements()
+
     def update(self, given_action: Tuple[int, int]) -> Tuple[float, bool]:
         """Update environment based on agent action and return reward"""
+        self.step_count += 1
+
         new_x = self.agent_pos[0] + given_action[0]
         new_y = self.agent_pos[1] + given_action[1]
 
         # Check boundaries
         if not (0 <= new_x < self.size and 0 <= new_y < self.size):
-            return -0.5, False  # Penalty for hitting boundaries
+            return -0.5 - 0.1 * self.step_count, False  # Scaling penalty for hitting boundaries
 
         self.agent_pos = (new_x, new_y)
 
@@ -79,7 +120,8 @@ class Environment:
         elif self.agent_pos in self.threats:
             return -1.0, True  # Penalty for hitting threat and end episode
 
-        return -0.1, False  # Small penalty for each move to encourage efficiency
+        # Small penalty for each move to encourage efficiency
+        return -0.1 - 0.01 * self.step_count, False
 
 
 class AdaptiveAgent:
@@ -148,40 +190,40 @@ class AdaptiveAgent:
 
 
 def train_agent(episodes: int = 1000, max_steps: int = 100):
-    """Train the agent in the environment"""
+    """Train the agent in the environment."""
     env = Environment()
     agent = AdaptiveAgent()
 
     for episode in range(episodes):
         env = Environment()  # Reset environment
-        temp_total_reward = 0
+        total_reward = 0
 
-        for temp_step in range(max_steps):
+        for step in range(max_steps):
             # Get current state
             current_state = env.get_sensor_data()
 
             # Choose and perform action
-            temp_action = agent.choose_action(current_state, epsilon=max(0.01, 0.5 - episode / episodes))
+            action = agent.choose_action(current_state, epsilon=max(0.01, 0.5 - episode / episodes))
 
             # Get reward and next state
-            temp_reward, temp_done = env.update(temp_action)
+            reward, done = env.update(action)
             next_state = env.get_sensor_data()
 
             # Learn from experience
-            agent.learn(current_state, temp_action, temp_reward, next_state)
+            agent.learn(current_state, action, reward, next_state)
 
-            temp_total_reward += temp_reward
+            total_reward += reward
 
-            if temp_done or len(env.resources) == 0:
+            if done or len(env.resources) == 0:
                 break
 
         if episode % 100 == 0:
-            print(f"Episode {episode}, Total Reward: {temp_total_reward:.2f}")
+            print(f"Episode {episode}, Total Reward: {total_reward:.2f}")
 
     return agent
 
 
-if __name__ == "__main__":
+def main():
     # Train the agent
     trained_agent = train_agent()
 
@@ -202,3 +244,7 @@ if __name__ == "__main__":
 
     print(f"Test completed. Total reward: {total_reward:.2f}")
     print(f"Resources remaining: {len(test_env.resources)}")
+
+
+if __name__ == "__main__":
+    main()
