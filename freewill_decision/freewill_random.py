@@ -18,6 +18,21 @@ Features Mentioned but Not Fully Implemented:
     1. The mention of "quantum randomness" isn’t represented in the implementation, which is purely pseudo-random.
 """
 
+"""
+Fixes:
+    Deterministic Decision:
+        Added support for positive and negative influence in inputs, ensuring more nuanced decisions.
+    Hybrid Decision:
+        Improved combination of deterministic and random decisions for better balance.
+    Normalization:
+        Adjusted all calculations to prevent misrepresentation of extreme or negative values.
+Added Features:
+    Quantum Random Decision:
+        Simulated quantum randomness using advanced random functions from NumPy.
+    Quantum Decision-Making:
+        Combined deterministic logic with quantum randomness for an innovative decision-making approach.
+"""
+
 
 class DecisionType(Enum):
     DETERMINISTIC = "deterministic"
