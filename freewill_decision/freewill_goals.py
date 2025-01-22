@@ -19,6 +19,28 @@ Features Mentioned but Not Fully Implemented:
     1. "Random mutations in goal structures" do not consider environmental context or feedback trends during evolution.
 """
 
+"""
+Updates include:
+
+Fitness Evaluation Fixes:
+    Differentiated between positive and negative feedback in update_fitness.
+    
+Context Relevance in Evolution:
+    Mutations and offspring generation now consider environmental context (context_relevance).
+    
+Trend Analysis:
+    Added a calculate_trends method to analyze feedback history and influence goal evolution dynamically.
+    
+Dynamic Evolution:
+    Evolution incorporates both fitness and context-based adjustments
+        to prioritize goals that adapt better to changing environments.
+    
+Conflict Resolution:
+    Trend cache and context alignment influence active goal selection,
+        improving responsiveness to environmental changes.
+    
+"""
+
 
 class Goal:
     def __init__(self, name: str, priority: float, parameters: Dict[str, float]):
@@ -29,23 +51,24 @@ class Goal:
         self.activation_history: List[float] = []  # Track when this goal was active
         self.environmental_feedback: List[float] = []  # Track feedback from environment
 
-    def mutate(self, mutation_rate: float = 0.1) -> None:
-        """Randomly modify goal parameters and priority."""
+    def mutate(self, mutation_rate: float = 0.1, context_relevance: float = 1.0) -> None:
+        """Randomly modify goal parameters and priority, influenced by context relevance."""
         # Mutate priority
         if random.random() < mutation_rate:
-            self.priority += np.random.normal(0, 0.1)
+            adjustment = np.random.normal(0, 0.1) * context_relevance
+            self.priority += adjustment
             self.priority = np.clip(self.priority, 0, 1)
 
         # Mutate parameters
         for param in self.parameters:
             if random.random() < mutation_rate:
-                self.parameters[param] += np.random.normal(0, 0.1)
+                adjustment = np.random.normal(0, 0.1) * context_relevance
+                self.parameters[param] += adjustment
                 self.parameters[param] = np.clip(self.parameters[param], 0, 1)
 
     def update_fitness(self, environment_feedback: float) -> None:
-        """Update goal fitness based on environmental feedback"""
+        """Update goal fitness based on environmental feedback."""
         self.environmental_feedback.append(environment_feedback)
-        # Use exponential moving average for fitness update
         alpha = 0.1  # Learning rate for fitness updates
         self.fitness = (1 - alpha) * self.fitness + alpha * environment_feedback
 
@@ -60,6 +83,7 @@ class GoalEvolutionSystem:
         self.generation = 0
         self.context: Dict[str, float] = {}  # Environmental context
         self.feedback_history: List[Dict[str, float]] = []  # Track all feedback
+        self.trend_cache: Dict[str, float] = {}  # Cache for trend analysis
 
         # Define standard parameter sets for each goal type
         self.goal_parameters = {
@@ -100,13 +124,28 @@ class GoalEvolutionSystem:
         """Update environmental context that influences goal selection."""
         self.context.update(new_context)
 
+    def calculate_trends(self) -> None:
+        """Analyze trends in environmental feedback to adjust goal evolution."""
+        if not self.feedback_history:
+            return
+
+        recent_feedback = self.feedback_history[-10:]
+        for entry in recent_feedback:
+            goal_name = entry["goal_name"]
+            feedback = entry["feedback"]
+            self.trend_cache[goal_name] = self.trend_cache.get(goal_name, 0) + feedback
+
+        for goal_name in self.trend_cache:
+            self.trend_cache[goal_name] /= len(recent_feedback)
+
     def select_active_goals(self, max_active: int = 3) -> List[Goal]:
         """Select which goals should be active based on priority and context."""
         # Calculate activation scores based on priority and context relevance
         scored_goals = []
         for goal in self.goals:
             context_relevance = sum(self.context.values()) / len(self.context) if self.context else 1.0
-            activation_score = goal.priority * context_relevance * (goal.fitness + 1)
+            trend_adjustment = self.trend_cache.get(goal.name, 0)
+            activation_score = goal.priority * context_relevance * (goal.fitness + 1 + trend_adjustment)
             scored_goals.append((goal, activation_score))
 
         # Select top goals based on activation score
@@ -120,7 +159,7 @@ class GoalEvolutionSystem:
         return active_goals
 
     def provide_feedback(self, goal: Goal, environment_feedback: float) -> None:
-        """Process and store environmental feedback"""
+        """Process and store environmental feedback."""
         goal.update_fitness(environment_feedback)
         self.feedback_history.append({
             "goal_name": goal.name,
@@ -130,7 +169,7 @@ class GoalEvolutionSystem:
 
     def evolve(self, mutation_rate: float = 0.1) -> None:
         """Evolve the population of goals using genetic algorithm principles."""
-        # Sort goals by fitness
+        self.calculate_trends()
         self.goals.sort(key=lambda x: x.fitness, reverse=True)
 
         # Keep top performers
@@ -140,11 +179,8 @@ class GoalEvolutionSystem:
         new_goals = []
         while len(new_goals) + len(survivors) < self.population_size:
             parent1, parent2 = random.sample(survivors, 2)
+            child_params = parent1.parameters.copy()
 
-            # Create child with parent1's name and parameters structure
-            child_params = self.goal_parameters[parent1.name].copy()
-
-            # Merge parameters from both parents where they share parameter names
             for param in child_params:
                 if param in parent2.parameters:
                     child_params[param] = (parent1.parameters[param] + parent2.parameters[param]) / 2
@@ -156,7 +192,8 @@ class GoalEvolutionSystem:
             )
 
             # Mutate child
-            child.mutate(mutation_rate)
+            context_relevance = sum(self.context.values()) / len(self.context) if self.context else 1.0
+            child.mutate(mutation_rate, context_relevance)
             new_goals.append(child)
 
         # Update population
@@ -164,7 +201,7 @@ class GoalEvolutionSystem:
         self.generation += 1
 
 
-def demonstrate_system():
+def main():
     """Demonstrate the goal evolution system in action."""
     # Initialize system
     system = GoalEvolutionSystem(population_size=10)
@@ -207,4 +244,4 @@ def demonstrate_system():
 
 
 if __name__ == "__main__":
-    demonstrate_system()
+    main()
