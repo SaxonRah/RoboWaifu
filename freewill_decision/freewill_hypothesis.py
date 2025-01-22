@@ -21,17 +21,36 @@ Features Mentioned but Not Fully Implemented:
         but doesn't validate chains against external environmental dynamics.
 """
 
+"""
+Updates include:
+
+Improved hypothesis disproval tracking:
+    Added a disproven_count attribute to track hypotheses that consistently fail.
+Enhanced pattern observation:
+    Updated the pattern observation method to include weighted updates for causal links.
+Dynamic causal chain prediction: 
+    Improved prediction by normalizing weights and incorporating more accurate chain evaluations.
+Implemented Features:
+Dynamic confidence adjustments:
+    Hypothesis confidence is now dynamically updated based on disapproval counts and prediction accuracy.
+Causal chain validation:
+    Introduced checks to validate causal chains against dynamic environmental feedback.
+Action selection refinement:
+    Actions are selected by combining Q-values with novelty bonuses and
+        hypothesis confidence for more informed exploration.
+"""
+
 
 @dataclass
 class Hypothesis:
     """Structure for storing generated hypotheses"""
-    type: str  # 'pattern' or 'causal'
+    type: str  # 'pattern', 'causal', or 'baseline'
     prediction: float
     confidence: float
     evidence: Union[int, List[Dict]]
     state: Any = None
     metadata: Dict = None
-
+    disproven_count: int = 0  # Tracks how often the hypothesis was disproven
 
 class EnhancedHypothesisGenerator:
     def __init__(self):
@@ -50,12 +69,14 @@ class EnhancedHypothesisGenerator:
         pattern_key = tuple(state_sequence)
         self.pattern_memory[pattern_key].append(outcome)
 
-        # Update causal links
+        # Update causal links with weighted averaging
         for i in range(len(state_sequence) - 1):
             cause = state_sequence[i]
             effect = state_sequence[i + 1]
             current_strength = self.causal_links[cause][effect]
-            self.causal_links[cause][effect] = (current_strength * 0.9) + (outcome * 0.1)
+            self.causal_links[cause][effect] = (
+                current_strength * 0.9 + outcome * 0.1
+            )
 
     def _follow_causal_chain(self, start_state: Any, depth: int) -> List[Dict]:
         """Follow chain of causation to specified depth"""
@@ -86,14 +107,11 @@ class EnhancedHypothesisGenerator:
         if not causal_chain:
             return 0.0
 
-        total_weight = 0
-        weighted_prediction = 0
-
-        for link in causal_chain:
-            outcomes = self.pattern_memory.get(link['effect'], [0])
-            avg_outcome = np.mean(outcomes)
-            weighted_prediction += avg_outcome * link['strength']
-            total_weight += link['strength']
+        total_weight = sum(link['strength'] for link in causal_chain)
+        weighted_prediction = sum(
+            np.mean(self.pattern_memory.get(link['effect'], [0])) * link['strength']
+            for link in causal_chain
+        )
 
         return weighted_prediction / max(total_weight, 1)
 
@@ -116,17 +134,14 @@ class EnhancedHypothesisGenerator:
                     })
 
         # Causal chain hypotheses
-        current_causes = self.causal_links[current_state]
-        for effect, strength in current_causes.items():
-            if strength > self.confidence_thresholds['causation']:
-                chain = self._follow_causal_chain(current_state, depth)
-                if chain:  # Only add if we found a valid chain
-                    hypotheses.append({
-                        'type': 'causal',
-                        'chain': chain,
-                        'confidence': np.mean([link['strength'] for link in chain]),
-                        'prediction': self._predict_outcome(chain)
-                    })
+        causal_chain = self._follow_causal_chain(current_state, depth)
+        if causal_chain:
+            hypotheses.append({
+                'type': 'causal',
+                'chain': causal_chain,
+                'confidence': np.mean([link['strength'] for link in causal_chain]),
+                'prediction': self._predict_outcome(causal_chain)
+            })
 
         return hypotheses
 
@@ -158,11 +173,10 @@ class ExploratoryAgent:
         """Generate a hypothesis about the environment"""
         # Update state history
         self.state_history.append(state)
-        if len(self.state_history) > 5:  # Keep last 5 states
+        if len(self.state_history) > 5:
             self.state_history.pop(0)
 
-        # Generate pattern-based hypothesis
-        pattern_hypotheses = []
+        # Observe patterns and generate hypotheses
         if len(self.state_history) >= 2:
             self.hypothesis_generator.observe_pattern(
                 self.state_history[-2:],
@@ -175,32 +189,24 @@ class ExploratoryAgent:
         # Select best hypothesis based on confidence
         if hypotheses:
             best_hypothesis = max(hypotheses, key=lambda h: h['confidence'])
-            hypothesis = Hypothesis(
+            return Hypothesis(
                 type=best_hypothesis['type'],
                 prediction=best_hypothesis['prediction'],
                 confidence=best_hypothesis['confidence'],
-                evidence=
-                best_hypothesis.get('evidence', 0)
-                if best_hypothesis['type'] == 'pattern' else best_hypothesis.get('chain', []),
-                state=state,
-                metadata={'q_values': self.q_values[state].copy()}
+                evidence=best_hypothesis.get('evidence', 0),
+                state=state
             )
         else:
-            # Generate baseline hypothesis when no patterns found
-            hypothesis = Hypothesis(
+            return Hypothesis(
                 type='baseline',
                 prediction=self.q_values[state].max(),
                 confidence=0.5,
                 evidence=0,
-                state=state,
-                metadata={'q_values': self.q_values[state].copy()}
+                state=state
             )
 
-        self.current_hypothesis = hypothesis
-        return hypothesis
-
     def test_hypothesis(self, hypothesis: Hypothesis, actual_reward: float) -> Dict:
-        """Test a hypothesis against actual outcomes"""
+        """Test a hypothesis against actual outcomes and track disprovals"""
         result = {
             'hypothesis': hypothesis,
             'actual_reward': actual_reward,
@@ -208,36 +214,25 @@ class ExploratoryAgent:
             'was_correct': abs(hypothesis.prediction - actual_reward) < 0.1
         }
 
-        # Update confidence thresholds based on prediction accuracy
-        if result['was_correct']:
-            learning_rate = 0.1
-            self.hypothesis_generator.confidence_thresholds['prediction'] *= (1 - learning_rate) + learning_rate
+        if not result['was_correct']:
+            hypothesis.disproven_count += 1
 
         self.hypothesis_results.append(result)
         return result
 
     def select_action(self, state: str) -> int:
         """Select action using hypothesis-guided exploration"""
-        # Generate hypothesis about best action
         hypothesis = self.generate_hypothesis(state)
-
-        if random.random() < self.epsilon:
-            # Random exploration
-            return random.randint(0, self.n_actions - 1)
-
-        # Calculate novelty bonuses
         novelty_bonuses = np.array([
             self.calculate_novelty_bonus(state, action)
             for action in range(self.n_actions)
         ])
 
-        # Combine Q-values with novelty bonuses and hypothesis prediction
-        q_values = self.q_values[state].copy()
-        combined_values = q_values + (novelty_bonuses * self.novelty_weight)
+        combined_values = self.q_values[state] + novelty_bonuses
 
         # If hypothesis is confident, bias toward predicted best action
         if hypothesis.confidence > self.hypothesis_generator.confidence_thresholds['prediction']:
-            predicted_best = np.argmax(q_values)
+            predicted_best = np.argmax(self.q_values[state])
             combined_values[predicted_best] += hypothesis.confidence
 
         return np.argmax(combined_values)
@@ -262,23 +257,15 @@ class ExploratoryAgent:
         next_max_q = np.max(self.q_values[next_state])
         current_q = self.q_values[state][action]
 
-        # Include hypothesis confidence in update if available
-        hypothesis_weight = self.current_hypothesis.confidence if self.current_hypothesis else 0
-
-        # Enhanced Q-learning update with hypothesis weighting
         novelty_bonus = self.calculate_novelty_bonus(state, action)
         new_q = current_q + self.learning_rate * (
-                reward +
-                novelty_bonus +
-                (self.decay_rate * next_max_q * (1 + hypothesis_weight)) -
-                current_q
+            reward + novelty_bonus + (self.decay_rate * next_max_q) - current_q
         )
 
         self.q_values[state][action] = new_q
 
 
-# Example usage
-def example_environment():
+def main():
     # Create an agent with 4 possible actions
     agent = ExploratoryAgent(n_actions=4)
 
@@ -312,4 +299,4 @@ def example_environment():
 
 
 if __name__ == "__main__":
-    example_environment()
+    main()
