@@ -22,6 +22,24 @@ Features Mentioned but Not Fully Implemented:
     and do not evaluate the effect of cumulative decisions over time.
 """
 
+"""
+Updates include:
+
+Dynamic Adjustments:
+    The exploration_rate and confidence_threshold are adjusted based on rule effectiveness and success confidence.
+    Performance trends are tracked to evaluate long-term behavior.
+    
+Improved Value Alignment:
+    Value alignment now penalizes misalignment to improve system behavior.
+
+Reflection Enhancements:
+    Reflections include cumulative performance trends.
+    Value and rule trends are logged for deeper insights.
+
+Range Validation:
+    Ensured values and rules stay within valid ranges dynamically.
+"""
+
 
 class MetaCognitionSystem:
     def __init__(self):
@@ -42,6 +60,7 @@ class MetaCognitionSystem:
         # Memory for storing past decisions and outcomes
         self.decision_history: List[Dict] = []
         self.reflection_log: List[Dict] = []
+        self.performance_trends: List[float] = []
 
     def make_decision(self, situation: Dict) -> Tuple[str, float]:
         """
@@ -96,6 +115,11 @@ class MetaCognitionSystem:
         efficiency_score = outcome.get("efficiency_score", 0)
         safety_score = outcome.get("safety_score", 0)
 
+        # Update performance trends
+        self.performance_trends.append(success_score)
+        if len(self.performance_trends) > 50:
+            self.performance_trends.pop(0)
+
         # Generate insights
         insights = {
             "success_vs_confidence": success_score - decision_data["confidence"],
@@ -122,14 +146,9 @@ class MetaCognitionSystem:
         """Calculate how well the outcome aligned with current values"""
         alignment_scores = []
 
-        if "accuracy" in outcome:
-            alignment_scores.append(
-                abs(outcome["accuracy"] - self.value_system["accuracy"])
-            )
-        if "efficiency" in outcome:
-            alignment_scores.append(
-                abs(outcome["efficiency"] - self.value_system["efficiency"])
-            )
+        for key, value in self.value_system.items():
+            if key in outcome:
+                alignment_scores.append(abs(outcome[key] - value))
 
         return np.mean(alignment_scores) if alignment_scores else 0.0
 
@@ -143,9 +162,7 @@ class MetaCognitionSystem:
         success_score = outcome.get("success_score", 0)
 
         # Compare outcome to thresholds
-        threshold_effectiveness = (
-                success_score - decision_data["rules_state"]["confidence_threshold"]
-        )
+        threshold_effectiveness = success_score - decision_data["rules_state"]["confidence_threshold"]
 
         return threshold_effectiveness
 
@@ -154,7 +171,7 @@ class MetaCognitionSystem:
         learning_rate = 0.1
 
         # Adjust values based on outcome alignment
-        alignment_delta = insights["value_alignment"]
+        alignment_delta = -insights["value_alignment"]  # Lower misalignment improves system
         for value in self.value_system:
             self.value_system[value] += learning_rate * alignment_delta
             # Ensure values stay in valid range
@@ -169,10 +186,8 @@ class MetaCognitionSystem:
         self.decision_rules["confidence_threshold"] += learning_rate * confidence_delta
 
         # Adjust exploration rate based on rule effectiveness
-        if insights["rule_effectiveness"] < 0:
-            self.decision_rules["exploration_rate"] += learning_rate
-        else:
-            self.decision_rules["exploration_rate"] -= learning_rate
+        exploration_adjustment = insights["rule_effectiveness"]
+        self.decision_rules["exploration_rate"] -= learning_rate * exploration_adjustment
 
         # Ensure rules stay in valid ranges
         for rule in self.decision_rules:
@@ -186,7 +201,7 @@ class MetaCognitionSystem:
         # Analyze trends in value system changes
         value_trends = {}
         for value in self.value_system:
-            initial = self.decision_history[0]["values_state"][value]
+            initial = self.reflection_log[0]["value_updates"].get(value, 0.0)
             current = self.value_system[value]
             value_trends[value] = {
                 "initial": initial,
@@ -197,7 +212,7 @@ class MetaCognitionSystem:
         # Analyze decision rule evolution
         rule_trends = {}
         for rule in self.decision_rules:
-            initial = self.decision_history[0]["rules_state"][rule]
+            initial = self.reflection_log[0]["rule_updates"].get(rule, 0.0)
             current = self.decision_rules[rule]
             rule_trends[rule] = {
                 "initial": initial,
@@ -205,14 +220,19 @@ class MetaCognitionSystem:
                 "change": current - initial
             }
 
+        # Analyze performance trends
+        avg_performance = np.mean(self.performance_trends) if self.performance_trends else 0.0
+
         return {
             "value_evolution": value_trends,
             "rule_evolution": rule_trends,
+            "average_performance": avg_performance,
             "total_decisions": len(self.decision_history),
             "total_reflections": len(self.reflection_log)
         }
 
 
+# Example usage
 def main():
     # Example usage
     system = MetaCognitionSystem()
@@ -241,7 +261,6 @@ def main():
     # Get insights about system learning
     insights = system.get_insights()
     print(json.dumps(insights, indent=2))
-
 
 if __name__ == "__main__":
     main()
