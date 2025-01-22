@@ -21,6 +21,22 @@ Features Mentioned but Not Fully Implemented:
         not automated processes or learning.
 """
 
+"""
+Updates include:
+
+Dynamic Context Multipliers:
+    Adjusted based on trends in feedback for more accurate prioritization.
+    
+Dependency Consideration:
+    Dependencies between values actively influence priority calculations.
+    
+Dynamic Redefinition of Values:
+    Values evolve over time, adjusting their importance based on cumulative experience.
+    
+Dynamic Time Frame Adjustments:
+    Enhanced priority calculation by considering dynamic time frame importance.
+"""
+
 
 class ValueCategory(Enum):
     ETHICAL = "ethical"
@@ -71,15 +87,20 @@ class ValueSystem:
         self._update_weights(value_name, outcome, context)
 
     def _update_weights(self, value_name: str, outcome: float, context: dict):
-        """Update weights based on experience."""
-        # Adjust the base weight for the value
+        """Update weights and context multipliers based on experience."""
         learning_rate = 0.1
         self.value_weights[value_name] += learning_rate * (outcome - self.value_weights[value_name])
 
-        # Update context multipliers
+        # Dynamically adjust context multipliers based on trends in feedback
         for context_key, context_value in context.items():
             context_id = f"{context_key}:{context_value}"
-            self.context_multipliers[context_id] += learning_rate * (outcome - self.context_multipliers[context_id])
+            past_feedback = [
+                log['outcome']
+                for log in self.experience_log
+                if log['context'].get(context_key) == context_value
+            ]
+            trend = sum(past_feedback) / len(past_feedback) if past_feedback else 0
+            self.context_multipliers[context_id] += learning_rate * (trend - self.context_multipliers[context_id])
 
     def get_value_priority(self, value_name: str, current_context: dict) -> float:
         """Calculate the current priority of a value based on its weight and context."""
@@ -89,20 +110,27 @@ class ValueSystem:
         value = self.values[value_name]
         base_priority = value.base_importance * self.value_weights[value_name]
 
-        # Apply context multipliers
+        # Apply dynamic context multipliers
         context_modifier = 1.0
         for context_key, context_value in current_context.items():
             context_id = f"{context_key}:{context_value}"
             context_modifier *= self.context_multipliers[context_id]
 
-        # Consider time frame
+        # Consider time frame dynamically based on changing importance
         time_frame_multiplier = {
-            TimeFrame.SHORT_TERM: 1.5,  # Immediate priority
-            TimeFrame.MEDIUM_TERM: 1.0,  # Neutral priority
-            TimeFrame.LONG_TERM: 0.7  # Lower immediate priority but still important
+            TimeFrame.SHORT_TERM: 1.5,
+            TimeFrame.MEDIUM_TERM: 1.0,
+            TimeFrame.LONG_TERM: 0.7
         }
+        dynamic_time_frame_multiplier = time_frame_multiplier[value.time_frame] * self.value_weights[value_name]
 
-        return base_priority * context_modifier * time_frame_multiplier[value.time_frame]
+        # Consider dependencies and their priorities
+        dependency_modifier = 1.0
+        for dep in value.dependencies:
+            if dep in self.values:
+                dependency_modifier += self.get_value_priority(dep, current_context) * 0.1
+
+        return base_priority * context_modifier * dynamic_time_frame_multiplier * dependency_modifier
 
     def resolve_conflict(self, value_names: List[str], current_context: dict) -> str:
         """Resolve conflict between multiple values based on current priorities."""
@@ -112,8 +140,19 @@ class ValueSystem:
         }
         return max(priorities.items(), key=lambda x: x[1])[0]
 
+    def dynamically_redefine_values(self):
+        """Redefine or re-prioritize values based on cumulative feedback."""
+        for value_name, value in self.values.items():
+            past_feedback = [
+                log['outcome']
+                for log in self.experience_log
+                if log['value'] == value_name
+            ]
+            if past_feedback:
+                avg_feedback = sum(past_feedback) / len(past_feedback)
+                value.base_importance = max(0.1, min(1.0, value.base_importance + avg_feedback * 0.05))
 
-# Example usage
+
 def main():
     # Initialize the value system
     system = ValueSystem()
@@ -162,6 +201,9 @@ def main():
     )
 
     print(f"In current context, prioritize: {conflict_result}")
+
+    # Dynamically redefine values
+    system.dynamically_redefine_values()
 
     # Get individual priorities
     for value_name in system.values:
