@@ -76,11 +76,11 @@ class DecisionMaker:
         else:
             normalized_inputs = {k: abs(v) / max_value for k, v in inputs.items()}
 
-        # If all values are 0, return middle score
-        if not any(normalized_inputs.values()):
-            return 0.5
+        # Weighted sum based on input values (support for positive and negative influences)
+        weighted_sum = sum(v * (1 if inputs[k] > 0 else -1) for k, v in normalized_inputs.items())
 
-        return sum(normalized_inputs.values()) / len(inputs)
+        # Normalize to a 0-1 range
+        return max(0, min(1, 0.5 + weighted_sum / 2))
 
     @staticmethod
     def _random_decision():
@@ -125,6 +125,32 @@ class DecisionMaker:
             score = self._hybrid_decision(inputs)
 
         return score, score >= threshold
+    @staticmethod
+    def quantum_random_decision():
+        """
+        Simulate quantum randomness by leveraging numpy's advanced random functions.
+        Returns:
+            float: Quantum-like random value between 0 and 1
+        """
+        return np.random.uniform(0, 1)
+
+    def make_quantum_decision(self, inputs, threshold=0.5):
+        """
+        Make a decision using quantum-like randomness blended with deterministic rules.
+
+        Args:
+            inputs (dict): Dictionary of input parameters
+            threshold (float): Threshold for binary decisions
+        Returns:
+            tuple: (decision score, binary decision)
+        """
+        deterministic_score = self._deterministic_decision(inputs)
+        quantum_score = self.quantum_random_decision()
+
+        score = (self.random_weight * quantum_score +
+                 (1 - self.random_weight) * deterministic_score)
+
+        return score, score >= threshold
 
 
 # Example usage
@@ -135,7 +161,7 @@ def main():
     # Sample input parameters
     test_inputs = {
         'parameter1': 75,
-        'parameter2': 30,
+        'parameter2': -30,
         'parameter3': 90
     }
 
@@ -148,6 +174,12 @@ def main():
         print(f"\n{decision_type.value.title()} Decision:")
         print(f"Score: {score:.3f}")
         print(f"Binary Decision: {decision}")
+
+    # Test quantum decision-making
+    quantum_score, quantum_decision = decision_maker.make_quantum_decision(test_inputs)
+    print("\nQuantum Decision:")
+    print(f"Score: {quantum_score:.3f}")
+    print(f"Binary Decision: {quantum_decision}")
 
 
 if __name__ == "__main__":
