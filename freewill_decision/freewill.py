@@ -87,19 +87,14 @@ class IntegratedFreewillSystem:
     def reset(self):
         """Reset the system while preserving learning"""
         # Store previous learning if it exists
-        if hasattr(self, 'adaptive_agent'):
-            prev_q_table = self.adaptive_agent.q_table.copy()
-            prev_meta_cognition = self.meta_cognition.reflection_log.copy()
-        else:
-            prev_q_table = None
-            prev_meta_cognition = None
+        prev_q_table = self.adaptive_agent.q_table.copy()
+        prev_meta_cognition = self.meta_cognition.reflection_log.copy()
 
-        # Initialize core components
+        # Reinitialize components
         self.environment = Environment(size=self.env_size)
         self.adaptive_agent = AdaptiveAgent(learning_rate=0.2)
         self.ethical_system = EthicalReasoningSystem()
         self.goal_system = GoalEvolutionSystem()
-        # Adjust exploration based on episode performance
         epsilon = max(0.1, 0.3 - (self.episode_count * 0.02))
         self.exploratory_agent = ExploratoryAgent(n_actions=4, epsilon=epsilon)
         self.value_system = ValueSystem()
@@ -107,16 +102,14 @@ class IntegratedFreewillSystem:
         self.meta_cognition = MetaCognitionSystem()
 
         # Transfer learning from previous episode
-        if prev_q_table:
-            self.adaptive_agent.q_table = prev_q_table
-        if prev_meta_cognition:
-            self.meta_cognition.reflection_log = prev_meta_cognition
+        self.adaptive_agent.q_table = prev_q_table
+        self.meta_cognition.reflection_log = prev_meta_cognition
 
         # Initialize subsystems
         self.goal_system.initialize_goals()
         self._initialize_value_system()
 
-        # Reset episode-specific counters
+        # Reset episode-specific counters and states
         self.total_reward = 0
         self.steps_taken = 0
         self.successful_actions = 0
@@ -137,6 +130,8 @@ class IntegratedFreewillSystem:
         self.known_resource_positions = set()
         self.last_resource_distance = None
         self.consecutive_no_resource_steps = 0
+        self.hypothesis_results = []
+        self.ethical_decisions = []
 
         # Initialize emergent state with experience-based values
         base_complexity = 0.1 + min(0.4, self.episode_count * 0.05)
@@ -181,14 +176,20 @@ class IntegratedFreewillSystem:
             return "exploring"
 
     def _check_stuck_behavior(self):
-        """Check if the agent is stuck in a pattern."""
+        """Check if the agent is stuck in a pattern, including oscillations."""
         current_pos = self.environment.agent_pos
         self.last_positions.append(current_pos)
+
         if len(self.last_positions) > 5:
             self.last_positions.pop(0)
-            # Check if we're revisiting the same positions
+
             unique_positions = len(set(self.last_positions))
-            if unique_positions <= 2:  # If only visiting 1-2 positions
+
+            if unique_positions == 2:
+                # Detect oscillation between two positions
+                self.stuck_count += 1
+            elif unique_positions <= 2:
+                # General stuck behavior
                 self.stuck_count += 1
             else:
                 self.stuck_count = max(0, self.stuck_count - 1)
@@ -332,6 +333,10 @@ class IntegratedFreewillSystem:
             # Update behavior mode
             self.mode = self._determine_behavior_mode()
 
+            # Create ethical dilemma and resolve it
+            self.current_dilemma = self._generate_ethical_dilemma()
+            ethical_action = self.ethical_system.resolve_dilemma(self.current_dilemma)
+
             # Get decision type from random decision maker
             decision_inputs = {
                 'sensor_data': np.mean(sensor_data),
@@ -344,15 +349,8 @@ class IntegratedFreewillSystem:
                 decision_type=DecisionType.HYBRID
             )
 
-            # Get meta-cognitive decision
-            meta_decision, confidence = self.meta_cognition.make_decision({
-                'mode': self.mode,
-                'stuck': self.stuck_count > 3,
-                'resources': len(self.environment.resources)
-            })
-
             # Combine all decision inputs
-            if use_random or meta_decision == "explore_new_approach":
+            if use_random or ethical_action.name == "explore":
                 action = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
                 is_exploration = True
             elif self.mode == "pursuing" and resource_direction:
@@ -375,7 +373,7 @@ class IntegratedFreewillSystem:
                 'stuck_count': self.stuck_count,
                 'known_resources': len(self.known_resource_positions),
                 'decision_score': decision_score,
-                'meta_confidence': confidence
+                'ethical_action': ethical_action.name
             }
 
         except Exception as e:
