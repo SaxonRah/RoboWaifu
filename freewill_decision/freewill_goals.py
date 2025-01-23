@@ -121,6 +121,14 @@ class GoalEvolutionSystem:
         scored_goals.sort(key=lambda x: x[1], reverse=True)
         active_goals = [g[0] for g in scored_goals[:max_active]]
 
+        # Integrate top trend goal into active goals
+        top_trend_goal = max(self.trend_cache.items(), key=lambda x: x[1], default=(None, 0))[0]
+        if top_trend_goal and all(goal.name != top_trend_goal for goal in active_goals):
+            # Add top trend goal only if it's not already active
+            additional_goal = next((goal for goal in self.goals if goal.name == top_trend_goal), None)
+            if additional_goal:
+                active_goals.append(additional_goal)
+
         # Update activation history
         for goal in self.goals:
             goal.activation_history.append(1.0 if goal in active_goals else 0.0)

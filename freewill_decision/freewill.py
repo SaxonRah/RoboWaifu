@@ -333,6 +333,12 @@ class IntegratedFreewillSystem:
             self.current_dilemma = self._generate_ethical_dilemma()
             ethical_action = self.ethical_system.resolve_dilemma(self.current_dilemma)
 
+            # Dynamic Ethical Weighting
+            self.ethical_system.adapt_weights({
+                framework.name: sum(ethical_action.consequences.values())
+                for framework in self.ethical_system.frameworks
+            })
+
             # Get decision type from random decision maker
             decision_inputs = {
                 'sensor_data': np.mean(sensor_data),
