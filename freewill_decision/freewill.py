@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Dict
 import numpy as np
 import random
 
@@ -206,7 +206,7 @@ class IntegratedFreewillSystem:
             return "escape"
         elif not self.environment.resources:
             return "exploring"
-        elif self.last_resource_distance and self.last_resource_distance < 3:
+        elif self.last_resource_distance and self.last_resource_distance < self.env_size:
             return "pursuing"
         else:
             return "exploring"
@@ -422,10 +422,51 @@ class IntegratedFreewillSystem:
             print(f"Warning: Error in decision making: {e}")
             return (0, 0), {'error': str(e)}
 
+    @staticmethod
+    def simulate_outcome(decision: str) -> Dict[str, float]:
+        """
+        Simulate the outcome of a decision based on predefined logic.
+        """
+        # Example predefined outcomes based on decision type
+        if decision == "explore_new_approach":
+            return {
+                "success_score": 0.7,
+                "efficiency_score": 0.5,
+                "safety_score": 0.6
+            }
+        elif decision == "conservative_approach":
+            return {
+                "success_score": 0.5,
+                "efficiency_score": 0.8,
+                "safety_score": 0.9
+            }
+        elif decision == "standard_approach":
+            return {
+                "success_score": 0.6,
+                "efficiency_score": 0.7,
+                "safety_score": 0.8
+            }
+        else:
+            # Default for unexpected decisions
+            return {
+                "success_score": 0.4,
+                "efficiency_score": 0.4,
+                "safety_score": 0.4
+            }
+
     def step(self) -> dict:
         """Take one step in the environment with enhanced integration."""
         try:
             current_sensor_data = self.environment.get_sensor_data()
+
+            situation = {
+                "sensor_data": current_sensor_data.tolist(),  # Convert NumPy array to a list
+                "context": {"urgency": 0.8, "complexity": 0.5},  # Add additional context
+            }
+
+            decision, confidence = self.meta_cognition.make_decision(situation)
+            outcome = self.simulate_outcome(decision)  # Simulate the result of the decision
+            self.meta_cognition.record_outcome(len(self.meta_cognition.decision_history) - 1, outcome)
 
             # Generate and test hypotheses about the environment
             self.current_hypothesis = self.exploratory_agent.generate_hypothesis(
