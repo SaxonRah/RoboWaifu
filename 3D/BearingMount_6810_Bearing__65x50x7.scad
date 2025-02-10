@@ -1,5 +1,5 @@
 // 65mm x 50mm x 7mm Bearing Mount
-$fn=100;
+$fn=150;
 
 // Bearing
 bearing_od=65;
@@ -148,7 +148,7 @@ module sub_bearing_inner_mount() {
         translate([0, -11, 0])
             cube([25, 8, 4], center = true);
         translate([0, -16, 0])
-            cylinder(h = mount_thickness+2, d=inner_mount_wire_cutout_round_diameter, center = true);        
+            cylinder(h = mount_thickness+2, d=inner_mount_wire_cutout_round_diameter, center = true);
     }
 }
 
@@ -242,6 +242,22 @@ module printable_set() {
         standoff();    
 }
 
+module printable_set_plates() {
+    mount_spacing = mount_thickness/2;
+    standoff_spacing = standoff_height/2;
+    
+    translate([0, 0, mount_spacing])
+        bearing_outer_mount();
+    translate([75, 0, mount_spacing])
+        bearing_outer_mount();
+    
+    translate([0, 0, mount_spacing])
+        bearing_inner_mount();
+    translate([75, 0, mount_spacing])
+        bearing_inner_mount();
+}
+
 //full_bearing_mount_assembly();
-printable_set();
+//printable_set();
+printable_set_plates();
     
