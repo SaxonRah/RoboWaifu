@@ -68,14 +68,19 @@ module metal_horn() {
             cylinder(h=2.75, d=9, center=true, $fn = quality);
         
         metal_horn_holes();
+        
+        
+        translate([0, 0, 0])
+        cylinder(h=6, d=3, center=true, $fn = quality);
     }
     
     difference() {
         translate([0, 0, horn_height+.38])
-        #cylinder(h=2.75, d=9, center=true, $fn = quality);
+        cylinder(h=2.75, d=9, center=true, $fn = quality);
         
         translate([0, 0, horn_height+.38])
-        #cylinder(h=3, d=6, center=true, $fn = quality);
+        cylinder(h=3, d=6, center=true, $fn = quality);
+            
     }
     
 }
