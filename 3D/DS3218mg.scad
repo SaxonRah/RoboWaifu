@@ -27,7 +27,7 @@ wire_length = 4;
 wire_width = 7;
 wire_height = 5;
 
-module servo_body() {
+module DS3218mg() {
     difference() {
         union() {
             // Main body
@@ -74,5 +74,8 @@ module servo_body() {
     cube([wire_length-2, wire_width-1, wire_height]);
 }
 
+
 // Render the servo
-servo_body();
+module test_DS3218mg() {
+    DS3218mg();
+}
