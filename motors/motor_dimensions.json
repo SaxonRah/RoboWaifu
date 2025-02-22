@@ -1,0 +1,33 @@
+{
+    "Rotor": {
+        "outer_diameter": 180,
+        "inner_diameter": 54.0,
+        "thickness": 20.0,
+        "magnet_cutouts": 16
+    },
+    "Stator": {
+        "outer_diameter": 171.0,
+        "inner_diameter": 72.0,
+        "thickness": 20.0,
+        "coil_slots": 16
+    },
+    "Magnets": {
+        "count": 16,
+        "arc_angle": 22.5,
+        "width": 28.27433388230814,
+        "height": 16.0
+    },
+    "Coils": {
+        "count": 16,
+        "slot_width": 25.44690049407733,
+        "slot_depth": 16.0
+    },
+    "Housing": {
+        "outer_diameter": 198.00000000000003,
+        "thickness": 8.0
+    },
+    "Mounting": {
+        "hole_radius": 27.0,
+        "hole_count": 4
+    }
+}

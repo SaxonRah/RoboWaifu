@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+    <!-- Background -->
+    <rect width="800" height="400" fill="#f8f9fa"/>
+
+    <!-- Title -->
+    <text x="400" y="30" text-anchor="middle" font-size="20" fill="#333">Under Actuation Robotic Finger Mechanism Analysis</text>
+
+    <!-- Main Assembly View -->
+    <g transform="translate(50,100)">
+        <!-- Proximal Phalange -->
+        <path d="M 0,0 L 180,0 L 170,60 L 10,60 Z" fill="lightblue" stroke="#333" stroke-width="2"/>
+        <text x="90" y="35" text-anchor="middle" font-size="14">Proximal (30mm)</text>
+
+        <!-- Middle Phalange -->
+        <path d="M 180,0 L 315,0 L 300,45 L 170,45 Z" fill="lightgreen" stroke="#333" stroke-width="2"/>
+        <text x="245" y="27" text-anchor="middle" font-size="14">Middle (22.5mm)</text>
+
+        <!-- Distal Phalange -->
+        <path d="M 315,0 L 405,0 L 385,35 L 300,35 Z" fill="pink" stroke="#333" stroke-width="2"/>
+        <text x="355" y="22" text-anchor="middle" font-size="12">Distal (15mm)</text>
+
+        <!-- Bell Crank System -->
+        <circle cx="0" cy="90" r="20" fill="red" stroke="#333" stroke-width="2"/>
+        <circle cx="180" cy="90" r="20" fill="orange" stroke="#333" stroke-width="2"/>
+        <circle cx="315" cy="90" r="20" fill="yellow" stroke="#333" stroke-width="2"/>
+
+        <!-- Linkages -->
+        <line x1="0" y1="90" x2="180" y2="90" stroke="gray" stroke-width="3"/>
+        <line x1="180" y1="90" x2="315" y2="90" stroke="gray" stroke-width="3"/>
+    </g>
+
+    <!-- Detailed Bell Crank View -->
+    <g transform="translate(500,100)">
+        <text x="150" y="-20" text-anchor="middle" font-size="16">Bell Crank Detail</text>
+        <!-- Bell Crank Body -->
+        <path d="M 100,100 L 150,50 L 200,100 L 150,150 Z" fill="red" stroke="#333" stroke-width="2"/>
+        <!-- Pin Holes -->
+        <circle cx="150" cy="100" r="5" fill="white" stroke="#333" stroke-width="2"/>
+        <circle cx="150" cy="50" r="5" fill="white" stroke="#333" stroke-width="2"/>
+        <circle cx="200" cy="100" r="5" fill="white" stroke="#333" stroke-width="2"/>
+        <!-- Dimensions -->
+        <text x="150" y="180" text-anchor="middle" font-size="12">8mm size</text>
+        <text x="250" y="100" text-anchor="start" font-size="12">3mm thickness</text>
+    </g>
+
+    <!-- Motion Arrows -->
+    <g transform="translate(50,100)" stroke="#666" stroke-width="2" fill="none">
+        <path d="M  20,120 Q  40,140  60,120" marker-end="url(#arrowhead)"/>
+        <path d="M 200,120 Q 220,140 240,120" marker-end="url(#arrowhead)"/>
+        <path d="M 330,120 Q 350,140 370,120" marker-end="url(#arrowhead)"/>
+    </g>
+
+    <!-- Arrowhead Marker -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+        </marker>
+    </defs>
+</svg>
